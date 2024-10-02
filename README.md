@@ -35,3 +35,6 @@ entities to be ticked each iteration. GPU parallelization is definitely the way
 to go. Could be done with either CUDA or GLM depending on the complexity and
 speed required. OpenCL could also be an alternative in order to allow the
 program to run on Non-Nvidia GPUs and devices with no gpu.
+
+## resources
+https://dafx.labri.fr/main/papers/p117.pdf
