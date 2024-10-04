@@ -135,7 +135,7 @@ void set_solid_fill(int x, int y, bool value) {
   set_solid_fill(x, y + 1, value);
 }
 void init_world() {
-  const int CAMERA_ID = 1;
+  const int CAMERA_ID = 0;
   // bounding box
   set_solid_rect({0, 0}, {WORLD_SIZE.x, 1});
   set_solid_rect({WORLD_SIZE.x - 1, 0}, {1, WORLD_SIZE.y});
