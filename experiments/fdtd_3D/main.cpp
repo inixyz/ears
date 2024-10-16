@@ -28,7 +28,8 @@ void draw_world() {
         else if (amplitude < 0)
           color = {255, 0, 0, alpha};
 
-        DrawCube({(float)x, (float)y, (float)z}, 1, 1, 1, color);
+        // DrawCube({(float)x, (float)y, (float)z}, 1, 1, 1, color);
+        DrawPoint3D({x, y, z}, color);
       }
     }
   }
