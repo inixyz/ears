@@ -12,7 +12,7 @@ const Vector2 CELL_SIZE = {4, 4};
 const int WORLD_TIME_ITER = 3;
 constexpr Vector2 WORLD_SIZE = {500, 200};
 const float SOUND_SPEED = 343;
-const float WALL_REFLECTION_FACTOR = 0.5;
+const float WALL_REFLECTION_FACTOR = 0.4;
 const float TIME_SCALE = 0.001, SIZE_SCALE = 0.1;
 
 const float TIME_STEP = (SOUND_SPEED * TIME_SCALE) / (2 * SIZE_SCALE);
@@ -134,8 +134,9 @@ void set_solid_fill(int x, int y, bool value) {
   set_solid_fill(x, y - 1, value);
   set_solid_fill(x, y + 1, value);
 }
+
 void init_world() {
-  const int CAMERA_ID = 1;
+  const int CAMERA_ID = 0;
   // bounding box
   set_solid_rect({0, 0}, {WORLD_SIZE.x, 1});
   set_solid_rect({WORLD_SIZE.x - 1, 0}, {1, WORLD_SIZE.y});
