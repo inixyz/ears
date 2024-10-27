@@ -6,21 +6,40 @@ from scipy.io import wavfile
 from numba import jit, prange
 
 c = 343  # speed of sound in air (m/s)
-dx = 0.01  # spatial step (m)
+dx = 0.1  # spatial step (m)
 dt = dx / (c * math.sqrt(2))  # time step, satisfying CFL condition
-reflection = 0.5
-gama = (1 - reflection) / (1 + reflection)
+
+# Material properties
+materials_dict = {"air": 0, "wood": 1, "absorber": 2}
+reflection_coefficients = [0.5, 0.2, 0.1]  # reflection values for air, wood, absorber
+speed_factors = [1.0, 0.7, 0.5]  # wave speed factor for air, wood, absorber
 
 dim_x, dim_y = 1000, 1000
 u = np.zeros((3, dim_x, dim_y))
 k = np.zeros((dim_x, dim_y))
 
-# Source and recording positions
-source_x, source_y = 50, 50
-record_x, record_y = 70, 70
+# Material grid (integers for each material type)
+materials = np.full(
+    (dim_x, dim_y), materials_dict["air"], dtype=np.int32
+)  # Default to air
+materials[20:100, 40:60] = materials_dict["wood"]  # Wood zone
+materials[:, :10] = materials_dict["absorber"]  # Left boundary absorber (PML)
+materials[:, -10:] = materials_dict["absorber"]  # Right boundary absorber (PML)
+materials[:10, :] = materials_dict["absorber"]  # Top boundary absorber (PML)
+materials[-10:, :] = materials_dict["absorber"]  # Bottom boundary absorber (PML)
 
-# Precompute the constant term
-common_term = gama * ((c * dt) / (2 * dx))
+# Compute gamma values for each material
+gamma_values = [(1 - r) / (1 + r) for r in reflection_coefficients]
+
+# Precompute common terms for each material
+common_terms = [
+    gamma * ((c * dt * speed_factors[i]) / (2 * dx))
+    for i, gamma in enumerate(gamma_values)
+]
+
+# Source and recording positions
+source_x, source_y = 60, 60
+record_x, record_y = 80, 80
 
 
 def compute_neighbours():
@@ -30,9 +49,10 @@ def compute_neighbours():
 
 
 @jit(nopython=True, parallel=True)
-def step(u, k):
+def step(u, k, materials, common_terms):
     for x in prange(1, dim_x - 1):
         for y in range(1, dim_y - 1):
+            mat_idx = materials[x, y]  # Get the material index
             neighbours = (
                 u[1, x - 1, y] + u[1, x + 1, y] + u[1, x, y - 1] + u[1, x, y + 1]
             )
@@ -40,8 +60,9 @@ def step(u, k):
             u[0, x, y] = (
                 (2 - 0.5 * k[x, y]) * u[1, x, y] + 0.5 * neighbours - u[2, x, y]
             )
-            # Apply loss
-            local_common_term = common_term * (4 - k[x, y])
+
+            # Apply loss based on material
+            local_common_term = common_terms[mat_idx] * (4 - k[x, y])
             numerator = u[0, x, y] + local_common_term * u[2, x, y]
             denominator = 1 + local_common_term
             u[0, x, y] = numerator / denominator
@@ -80,7 +101,7 @@ def main():
         u[0, source_x, source_y] = input_signal[t]
 
         u[2], u[1] = u[1], u[0]  # Rotate arrays for next step
-        step(u, k)
+        step(u, k, materials, common_terms)
 
         # Record the signal at the recording location
         recorded_signal.append(u[0, record_x, record_y])
