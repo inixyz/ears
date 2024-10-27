@@ -24,12 +24,14 @@ common_term = gama * ((c * dt) / (2 * dx))
 
 
 def compute_neighbours():
+    # Manually set cell values as CuPy arrays
     k[1:-1, 1:-1] = 4  # Inner cells have 4 neighbors
     k[0, :] = k[-1, :] = k[:, 0] = k[:, -1] = 3  # Edge cells
     k[0, 0] = k[0, -1] = k[-1, 0] = k[-1, -1] = 2  # Corner cells
 
 
 def step(u, k):
+    # Calculate neighbors using CuPy
     neighbours = (
         cp.roll(u[1], shift=1, axis=0)
         + cp.roll(u[1], shift=-1, axis=0)
@@ -47,15 +49,18 @@ def step(u, k):
 
 
 def main():
-    # Load source signal from a .wav file
+    # Load source signal from a .wav file and convert to CuPy array
     sample_rate, input_signal = wavfile.read("samples/1.wav")
-    input_signal = input_signal / cp.max(cp.abs(input_signal))  # Normalize
+    input_signal = cp.array(
+        input_signal, dtype=cp.float32
+    )  # Ensure input_signal is on GPU
+    input_signal /= cp.max(cp.abs(input_signal))  # Normalize
     time_steps = len(input_signal)
 
     # Prepare to record signal at a specific point
     recorded_signal = []
 
-    # Compute neighbors once (on CPU, as k is simple)
+    # Compute neighbors once (on GPU)
     compute_neighbours()
 
     # Time loop with tqdm for progress indication
@@ -66,14 +71,16 @@ def main():
         u[2], u[1] = u[1], u[0]  # Rotate arrays for next step
         step(u, k)
 
-        # Record the signal at the recording location
-        recorded_signal.append(u[0, record_x, record_y].get())
+        # Record the signal at the recording location, moving to CPU only when necessary
+        recorded_signal.append(
+            cp.asnumpy(u[0, record_x, record_y])
+        )  # Convert to numpy for storage
 
-    # Save recorded signal as a .wav file
+    # Convert recorded signal to numpy for saving and scale to int16 range
     recorded_signal = cp.array(recorded_signal) * 32767  # Scale for int16 range
     recorded_signal = recorded_signal.astype(
         cp.int16
-    ).get()  # Convert to int16 and move to CPU
+    ).get()  # Move to CPU and convert to int16
     wavfile.write("samples/1_recorded.wav", sample_rate, recorded_signal)
 
 
