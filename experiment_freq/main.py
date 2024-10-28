@@ -15,12 +15,26 @@ print(f"dx: {dx}, dt: {dt}")
 mat_const = [(c_mat**2 * dt**2 / dx**2) for c_mat in c]
 
 dim_x, dim_y = 500, 500
+pml_thickness = 20  # Thickness of the PML layer
 u = np.zeros((3, dim_x, dim_y))
 m = np.zeros((dim_x, dim_y))
+pml_damping = np.zeros((dim_x, dim_y))
+
+# Exponentially increasing PML damping profile
+sigma_max = 1.5  # Maximum damping value for the PML
+
+for i in range(pml_thickness):
+    damping_value = (
+        sigma_max * (i / pml_thickness) ** 3
+    )  # Cubic increase for stronger damping
+    pml_damping[i, :] = damping_value
+    pml_damping[-i - 1, :] = damping_value
+    pml_damping[:, i] = damping_value
+    pml_damping[:, -i - 1] = damping_value
 
 
 @jit(nopython=True, parallel=True)
-def step(u, mat_const):
+def step(u, mat_const, pml_damping):
     for x in prange(1, dim_x - 1):
         for y in range(1, dim_y - 1):
             neighbours = (
@@ -31,7 +45,8 @@ def step(u, mat_const):
                 - 4 * u[1, x, y]
             )
             u[0, x, y] = (
-                mat_const[int(m[x, y])] * neighbours + 2 * u[1, x, y] - u[2, x, y]
+                (mat_const[int(m[x, y])] * neighbours + 2 * u[1, x, y] - u[2, x, y])
+                * np.exp(-pml_damping[x, y])  # Stronger damping with exponential decay
             )
 
 
@@ -90,7 +105,7 @@ def main(args):
     for t in tqdm.tqdm(range(time_steps), desc="Simulating"):
         u[0, source_x, source_y] = input_signal[t]
         u[2], u[1] = u[1], u[0]
-        step(u, mat_const)
+        step(u, mat_const, pml_damping)
 
         recorded_signal.append(u[0, record_x, record_y])
 
