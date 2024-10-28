@@ -9,7 +9,6 @@ from numba import jit, prange
 c = 343  # speed of sound in air (m/s)
 dx = 0.1  # spatial step (m)
 dt = dx / (c * math.sqrt(2))  # time step, satisfying CFL condition
-print(f" dt: {dt} s, dx: {dx} m")
 
 # Material properties
 materials_dict = {"air": 0, "wood": 1, "absorber": 2}
@@ -40,7 +39,7 @@ common_terms = [
 
 # Source and recording positions
 source_x, source_y = 60, 60
-record_x, record_y = 80, 80
+record_x, record_y = 400, 400
 
 # Material color map
 material_colors = ["lightblue", "tan", "grey"]
@@ -88,7 +87,10 @@ def main():
     # Load source signal from a .wav file
     sample_rate, input_signal = wavfile.read("samples/1.wav")
     input_signal = input_signal / np.max(np.abs(input_signal))  # Normalize
-    time_steps = len(input_signal)
+
+    # Calculate the sample interval based on dt and the input signal's sample rate
+    input_interval = int(sample_rate * dt)
+    num_sim_steps = int(len(input_signal) * input_interval)
 
     # Prepare to record signal at a specific point
     recorded_signal = []
@@ -113,9 +115,10 @@ def main():
     ax.set_title("Wave Propagation with Material Overlay")
 
     # Time loop with tqdm for progress indication
-    for t in tqdm.tqdm(range(time_steps), desc="Simulating"):
-        # Set source signal at specified location
-        u[0, source_x, source_y] = input_signal[t]
+    for t in tqdm.tqdm(range(num_sim_steps), desc="Simulating"):
+        # Set source signal at specified location if it's within bounds of input signal
+        if t // input_interval < len(input_signal):
+            u[0, source_x, source_y] = input_signal[t // input_interval]
 
         u[2], u[1] = u[1], u[0]  # Rotate arrays for next step
         step(u, k, materials, common_terms, attenuation_factors)
@@ -130,7 +133,7 @@ def main():
     # Save recorded signal as a .wav file
     recorded_signal = np.array(recorded_signal) * 32767  # Scale for int16 range
     recorded_signal = recorded_signal.astype(np.int16)  # Convert to int16 format
-    wavfile.write("samples/1_recorded.wav", sample_rate, recorded_signal)
+    wavfile.write("samples/1_recorded.wav", , recorded_signal)
 
     plt.show()  # Show the final plot
 
