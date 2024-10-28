@@ -8,7 +8,7 @@ from numba import jit, prange
 from matplotlib.colors import ListedColormap
 
 # Parameters
-c = [343, 344]
+c = [343, 3490]
 dx = 0.01
 dt = dx / (max(c) * math.sqrt(2))
 print(f"dx: {dx}, dt: {dt}")
@@ -41,10 +41,16 @@ def step(u, k, c, m):
     for x in prange(1, dim_x - 1):
         for y in range(1, dim_y - 1):
             neighbours = (
-                u[1, x - 1, y] + u[1, x + 1, y] + u[1, x, y - 1] + u[1, x, y + 1]
+                u[1, x - 1, y]
+                + u[1, x + 1, y]
+                + u[1, x, y - 1]
+                + u[1, x, y + 1]
+                - 4 * u[1, x, y]
             )
             c_mat = c[int(m[x, y])]
-            u[0, x, y] = (c_mat**2 * dt**2 / dx**2) * neighbours - u[2, x, y]
+            u[0, x, y] = (
+                (c_mat**2 * dt**2 / dx**2) * neighbours + 2 * u[1, x, y] - u[2, x, y]
+            )
 
 
 def display(fig, ax, im_air, im_material, t):
@@ -64,7 +70,7 @@ def display(fig, ax, im_air, im_material, t):
 
 
 def main():
-    sample_rate, input_signal = wavfile.read("samples/1.wav")
+    sample_rate, input_signal = wavfile.read("samples/impulse.wav")
     input_signal = input_signal / np.max(np.abs(input_signal))  # Normalize
 
     target_sample_rate = int(1 / dt)
