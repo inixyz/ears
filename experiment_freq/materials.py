@@ -133,7 +133,7 @@ def main():
     # Save recorded signal as a .wav file
     recorded_signal = np.array(recorded_signal) * 32767  # Scale for int16 range
     recorded_signal = recorded_signal.astype(np.int16)  # Convert to int16 format
-    wavfile.write("samples/1_recorded.wav", , recorded_signal)
+    wavfile.write("samples/1_recorded.wav", sample_rate, recorded_signal)
 
     plt.show()  # Show the final plot
 

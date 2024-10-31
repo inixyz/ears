@@ -35,8 +35,9 @@ for i in range(pml_thickness):
 
 @jit(nopython=True, parallel=True)
 def step(u, mat_const, pml_damping):
-    for x in prange(1, dim_x - 1):
-        for y in range(1, dim_y - 1):
+    # Optimizing the iteration limits by skipping boundary conditions
+    for x in prange(1, u.shape[1] - 1):
+        for y in range(1, u.shape[2] - 1):
             neighbours = (
                 u[1, x - 1, y]
                 + u[1, x + 1, y]
@@ -44,9 +45,11 @@ def step(u, mat_const, pml_damping):
                 + u[1, x, y + 1]
                 - 4 * u[1, x, y]
             )
-            u[0, x, y] = (
-                (mat_const[int(m[x, y])] * neighbours + 2 * u[1, x, y] - u[2, x, y])
-                * np.exp(-pml_damping[x, y])  # Stronger damping with exponential decay
+            # Reduce accesses to global arrays and use direct element referencing
+            mat = mat_const[int(m[x, y])]
+            damping = pml_damping[x, y]
+            u[0, x, y] = (mat * neighbours + 2 * u[1, x, y] - u[2, x, y]) * np.exp(
+                -damping
             )
 
 
@@ -97,16 +100,18 @@ def main(args):
         u[0], cmap=plt.cm.viridis, interpolation="nearest", vmin=-1, vmax=1
     )
     im_material = ax.imshow(
-        u[0], cmap=plt.cm.plasma, interpolation="nearest", vmin=-1, vmax=1, alpha=0.7
+        u[0], cmap=plt.cm.plasma, interpolation="nearest", vmin=-1, vmax=1
     )
     plt.colorbar(im_air, ax=ax)
     ax.set_title("Wave Propagation")
 
+    # Run the simulation loop
     for t in tqdm.tqdm(range(time_steps), desc="Simulating"):
         u[0, source_x, source_y] = input_signal[t]
         u[2], u[1] = u[1], u[0]
         step(u, mat_const, pml_damping)
 
+        # Collect data from each time step for later use
         recorded_signal.append(u[0, record_x, record_y])
 
         if args.visualize and t % 100 == 0:
