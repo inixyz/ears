@@ -40,3 +40,6 @@ program to run on Non-Nvidia GPUs and devices with no gpu.
 
 <https://dafx.labri.fr/main/papers/p117.pdf>
 <https://www.acoustics.asn.au/conference_proceedings/ICA2010/cdrom-ICA2010/papers/p488.pdf>
+
+
+https://sci-hub.se/10.1109/ICASSP.2011.5946404
