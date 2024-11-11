@@ -1,2 +1,0 @@
-all:
-	gcc src/*.c
