@@ -10,8 +10,9 @@ struct Cell {
 };
 
 // Global constants
-// const float WALL_IMPEDANCE = 1'575'000; // rayl
-const float WALL_IMPEDANCE = 200000; // rayl
+// const float WALL_IMPEDANCE = 200000; // rayl
+const float WALL_IMPEDANCE = 1'570'000;
+// const float WALL_IMPEDANCE = 400'000;
 const float WALL_DENSITY = 510;
 const float AIR_SPEED = 343;
 const float EW = WALL_IMPEDANCE / (WALL_DENSITY * AIR_SPEED);
@@ -24,32 +25,38 @@ const int scale = 14;
 Cell world[3][world_width][world_height];
 
 // Signal types
-// 0 = impulse, 1 = sinewave
 const int source_type = 0;
-const int source_x = world_width / 2, source_y = world_height / 2;
+const float impulse_value = 5;
+const int source_x = world_width / 4, source_y = world_height / 4;
 const int sinewave_freq = 500;
 
 // Receiver position and signal buffer
 const int receiver_x = 70, receiver_y = 70;
-const int max_signal_samples = 500; // Maximum samples to store for graphing
+const int max_signal_samples = 500;
 std::vector<float> receiver_signal;
+
+// State variables
+bool is_paused = false;
+long long timestep = 0;
+
+// Graph dimensions
+const int graph_width = 1500;
+const int graph_height = world_height * scale;
+const int graph_x_offset = world_width * scale;
+const int graph_y_offset = (world_height * scale - graph_height) / 2;
 
 // Function to draw the world
 void draw_world() {
   Color color;
-  float p_norm;
-
-  const float color_intensify = 0.3;
+  const float color_intensify = 1;
 
   for (int x = 0; x < world_width; x++) {
     for (int y = 0; y < world_height; y++) {
-      p_norm = Remap(world[0][x][y].p, -1 * color_intensify,
-                     1 * color_intensify, -128, 127);
-      p_norm = p_norm > 127 ? 127 : p_norm;
-      p_norm = p_norm < -128 ? -128 : p_norm;
-      p_norm = (int)p_norm;
-      color = Color{0, (unsigned char)(128 + p_norm),
-                    (unsigned char)(128 - p_norm), 255};
+      float p_norm = Remap(world[0][x][y].p, -1 * color_intensify,
+                           1 * color_intensify, -128, 127);
+      p_norm = fmax(fmin(p_norm, 127), -128);
+      color = Color{0, static_cast<unsigned char>(128 + p_norm),
+                    static_cast<unsigned char>(128 - p_norm), 255};
 
       DrawRectangle(x * scale, y * scale, scale, scale, color);
     }
@@ -57,27 +64,53 @@ void draw_world() {
 
   // Highlight the receiver position
   DrawRectangle(receiver_x * scale, receiver_y * scale, scale, scale, RED);
+  DrawRectangle(source_x * scale, source_y * scale, scale, scale, RED);
 }
 
-// Function to draw the receiver signal graph
-const int graph_width = 1500;
+// Function to draw the receiver signal graph with gradation lines
 void draw_graph() {
-  const float gain = 5;
+  const float gain = 3;
   const float thickness = 3;
-  const int graph_height = world_height * scale;
-  const int graph_x_offset = world_width * scale; // Start after world
-  const int graph_y_offset = (world_height * scale - graph_height) / 2;
 
   // Draw graph background
   DrawRectangle(graph_x_offset, graph_y_offset, graph_width, graph_height,
                 GRAY);
 
-  // Draw graph axes
+  // Draw X and Y axes
   DrawLine(graph_x_offset, graph_y_offset + graph_height / 2,
            graph_x_offset + graph_width, graph_y_offset + graph_height / 2,
            WHITE);
   DrawLine(graph_x_offset, graph_y_offset, graph_x_offset,
            graph_y_offset + graph_height, WHITE);
+
+  // Gradation lines and labels
+  int num_x_lines = 10; // Number of vertical lines (time divisions)
+  int num_y_lines = 10; // Number of horizontal lines (amplitude divisions)
+  float x_step = (float)graph_width / num_x_lines;
+  float y_step = (float)graph_height / num_y_lines;
+
+  // Y-axis gradations
+  for (int i = 0; i <= num_y_lines; ++i) {
+    float y = graph_y_offset + i * y_step;
+    DrawLine(graph_x_offset, y, graph_x_offset + graph_width, y, DARKGRAY);
+    float label =
+        (0.5f - (float)i / num_y_lines) * 2 / gain; // Normalize amplitude
+    DrawText(TextFormat("%.2f", label), graph_x_offset - 50, y - 10, 20, WHITE);
+  }
+
+  // X-axis gradations
+  for (int i = 0; i <= num_x_lines; ++i) {
+    float x = graph_x_offset + i * x_step;
+    DrawLine(x, graph_y_offset, x, graph_y_offset + graph_height, DARKGRAY);
+
+    // Calculate the timestep for this position
+    int start_timestep =
+        (timestep > max_signal_samples) ? (timestep - max_signal_samples) : 0;
+    float label =
+        (start_timestep + i * (max_signal_samples / num_x_lines)) * dt;
+    DrawText(TextFormat("%.4f", label), x - 20,
+             graph_y_offset + graph_height / 2 + 5, 20, WHITE);
+  }
 
   // Plot receiver signal
   if (!receiver_signal.empty()) {
@@ -106,8 +139,6 @@ void init_world() {
   }
 }
 
-// World update functions remain unchanged
-
 void update_inner() {
   float N;
 
@@ -117,6 +148,7 @@ void update_inner() {
           world[1][x][y + 1].p - 4 * world[1][x][y].p;
       world[0][x][y].p = world[1][x][y].courant * world[1][x][y].courant * N +
                          2 * world[1][x][y].p - world[2][x][y].p;
+      world[0][x][y].p *= 0.99;
     }
   }
 }
@@ -217,13 +249,12 @@ void update_bottom_right() {
       (1 + 2 * world[1][x][y].courant / EW);
 }
 
-long long timestep = 0;
-
 // Update world with source and capture receiver signal
 void update_world() {
   memcpy(world[2], world[1], sizeof(Cell) * world_width * world_height);
   memcpy(world[1], world[0], sizeof(Cell) * world_width * world_height);
 
+  // Update propagation
   update_inner();
   update_right();
   update_left();
@@ -237,7 +268,7 @@ void update_world() {
   // Source signal
   if (source_type == 0) {
     if (timestep == 0)
-      world[0][source_x][source_y].p = 1;
+      world[0][source_x][source_y].p = impulse_value;
   } else if (source_type == 1) {
     world[0][source_x][source_y].p =
         sin(2 * M_PI * sinewave_freq * timestep * dt);
@@ -255,7 +286,7 @@ void update_world() {
 int main() {
   // Window size doubled in width
   InitWindow(world_width * scale + graph_width, world_height * scale,
-             "Sound Propagation with Receiver Graph");
+             "Sound Propagation with Receiver Graph and Gradations");
   SetTargetFPS(60);
 
   std::string dx_string = "dx: " + std::to_string(dx) + " [m]";
@@ -265,23 +296,36 @@ int main() {
                             " [m] x " + std::to_string(world_height * dx) +
                             " [m]     (" + std::to_string(world_width) + " x " +
                             std::to_string(world_height) + " cells)";
-
   init_world();
 
   while (!WindowShouldClose()) {
-    update_world();
+    // Pause/unpause simulation
+    if (IsKeyPressed(KEY_SPACE)) {
+      is_paused = !is_paused;
+    }
 
+    if (!is_paused) {
+      update_world();
+    }
+
+    // Draw the simulation and graph
     BeginDrawing();
     ClearBackground(BLACK);
     draw_world();
     draw_graph();
-    DrawFPS(0, 0);
+    DrawFPS(10, 10);
+
+    if (is_paused) {
+      DrawText("PAUSED", graph_x_offset + graph_width / 2 - 50, 20, 30, YELLOW);
+    }
+
     DrawText(dx_string.c_str(), 20, 20, 30, RAYWHITE);
     DrawText(dt_string.c_str(), 20, 50, 30, RAYWHITE);
     DrawText(ew_string.c_str(), 20, 80, 30, RAYWHITE);
     DrawText(size_string.c_str(), 20, 110, 30, RAYWHITE);
     DrawText(("t: " + std::to_string(timestep * dt) + " [s]").c_str(), 20, 140,
              30, RAYWHITE);
+
     EndDrawing();
   }
 
