@@ -3,13 +3,15 @@
 #include <iostream>
 #include <raylib.h>
 #include <raymath.h>
+#include <vector>
 
 struct Cell {
   float p, courant;
 };
 
-// const float WALL_IMPEDANCE = 200000; // rayl
-const float WALL_IMPEDANCE = 1'575'000; // rayl
+// Global constants
+// const float WALL_IMPEDANCE = 1'575'000; // rayl
+const float WALL_IMPEDANCE = 200000; // rayl
 const float WALL_DENSITY = 510;
 const float AIR_SPEED = 343;
 const float EW = WALL_IMPEDANCE / (WALL_DENSITY * AIR_SPEED);
@@ -21,13 +23,18 @@ const int world_width = 100, world_height = 100;
 const int scale = 14;
 Cell world[3][world_width][world_height];
 
-// signal types
-// 0 = impulse
-// 1 = sinwave
+// Signal types
+// 0 = impulse, 1 = sinewave
 const int source_type = 0;
 const int source_x = world_width / 2, source_y = world_height / 2;
 const int sinewave_freq = 500;
 
+// Receiver position and signal buffer
+const int receiver_x = 70, receiver_y = 70;
+const int max_signal_samples = 500; // Maximum samples to store for graphing
+std::vector<float> receiver_signal;
+
+// Function to draw the world
 void draw_world() {
   Color color;
   float p_norm;
@@ -47,8 +54,47 @@ void draw_world() {
       DrawRectangle(x * scale, y * scale, scale, scale, color);
     }
   }
+
+  // Highlight the receiver position
+  DrawRectangle(receiver_x * scale, receiver_y * scale, scale, scale, RED);
 }
 
+// Function to draw the receiver signal graph
+const int graph_width = 1500;
+void draw_graph() {
+  const float gain = 5;
+  const float thickness = 3;
+  const int graph_height = world_height * scale;
+  const int graph_x_offset = world_width * scale; // Start after world
+  const int graph_y_offset = (world_height * scale - graph_height) / 2;
+
+  // Draw graph background
+  DrawRectangle(graph_x_offset, graph_y_offset, graph_width, graph_height,
+                GRAY);
+
+  // Draw graph axes
+  DrawLine(graph_x_offset, graph_y_offset + graph_height / 2,
+           graph_x_offset + graph_width, graph_y_offset + graph_height / 2,
+           WHITE);
+  DrawLine(graph_x_offset, graph_y_offset, graph_x_offset,
+           graph_y_offset + graph_height, WHITE);
+
+  // Plot receiver signal
+  if (!receiver_signal.empty()) {
+    for (size_t i = 1; i < receiver_signal.size(); ++i) {
+      float x1 =
+          graph_x_offset + (i - 1) * (graph_width / (float)max_signal_samples);
+      float y1 = graph_y_offset + graph_height / 2 -
+                 gain * receiver_signal[i - 1] * (graph_height / 2);
+      float x2 = graph_x_offset + i * (graph_width / (float)max_signal_samples);
+      float y2 = graph_y_offset + graph_height / 2 -
+                 gain * receiver_signal[i] * (graph_height / 2);
+      DrawLineEx(Vector2{x1, y1}, Vector2{x2, y2}, thickness, RED);
+    }
+  }
+}
+
+// Initialize the world
 void init_world() {
   for (int x = 0; x < world_width; x++) {
     for (int y = 0; y < world_height; y++) {
@@ -59,6 +105,8 @@ void init_world() {
     }
   }
 }
+
+// World update functions remain unchanged
 
 void update_inner() {
   float N;
@@ -170,22 +218,23 @@ void update_bottom_right() {
 }
 
 long long timestep = 0;
+
+// Update world with source and capture receiver signal
 void update_world() {
   memcpy(world[2], world[1], sizeof(Cell) * world_width * world_height);
   memcpy(world[1], world[0], sizeof(Cell) * world_width * world_height);
 
   update_inner();
-
   update_right();
   update_left();
   update_top();
   update_bottom();
-
   update_top_right();
   update_top_left();
   update_bottom_left();
   update_bottom_right();
 
+  // Source signal
   if (source_type == 0) {
     if (timestep == 0)
       world[0][source_x][source_y].p = 1;
@@ -194,13 +243,20 @@ void update_world() {
         sin(2 * M_PI * sinewave_freq * timestep * dt);
   }
 
+  // Capture receiver signal
+  receiver_signal.push_back(world[0][receiver_x][receiver_y].p);
+  if (receiver_signal.size() > max_signal_samples) {
+    receiver_signal.erase(receiver_signal.begin());
+  }
+
   timestep++;
 }
 
 int main() {
-  InitWindow(world_width * scale, world_height * scale,
-             "simple_boundary_update");
-  SetTargetFPS(10);
+  // Window size doubled in width
+  InitWindow(world_width * scale + graph_width, world_height * scale,
+             "Sound Propagation with Receiver Graph");
+  SetTargetFPS(60);
 
   std::string dx_string = "dx: " + std::to_string(dx) + " [m]";
   std::string dt_string = "dt: " + std::to_string(dx) + " [s]";
@@ -214,11 +270,11 @@ int main() {
 
   while (!WindowShouldClose()) {
     update_world();
-    // std::cout << world[0][world_width / 2][world_height / 2].p << std::endl;
 
     BeginDrawing();
     ClearBackground(BLACK);
     draw_world();
+    draw_graph();
     DrawFPS(0, 0);
     DrawText(dx_string.c_str(), 20, 20, 30, RAYWHITE);
     DrawText(dt_string.c_str(), 20, 50, 30, RAYWHITE);
