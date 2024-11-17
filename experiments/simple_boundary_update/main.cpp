@@ -18,14 +18,21 @@ const float dx = 0.1;
 const float dt = dx / (AIR_SPEED * sqrt(2));
 
 const int world_width = 100, world_height = 100;
-const int scale = 10;
+const int scale = 14;
 Cell world[3][world_width][world_height];
+
+// signal types
+// 0 = impulse
+// 1 = sinwave
+const int source_type = 0;
+const int source_x = world_width / 2, source_y = world_height / 2;
+const int sinewave_freq = 500;
 
 void draw_world() {
   Color color;
   float p_norm;
 
-  const float color_intensify = 1;
+  const float color_intensify = 0.3;
 
   for (int x = 0; x < world_width; x++) {
     for (int y = 0; y < world_height; y++) {
@@ -51,8 +58,6 @@ void init_world() {
       }
     }
   }
-
-  world[0][world_width / 2][world_height / 2].p = 1;
 }
 
 void update_inner() {
@@ -180,6 +185,14 @@ void update_world() {
   update_top_left();
   update_bottom_left();
   update_bottom_right();
+
+  if (source_type == 0) {
+    if (timestep == 0)
+      world[0][source_x][source_y].p = 1;
+  } else if (source_type == 1) {
+    world[0][source_x][source_y].p =
+        sin(2 * M_PI * sinewave_freq * timestep * dt);
+  }
 
   timestep++;
 }
