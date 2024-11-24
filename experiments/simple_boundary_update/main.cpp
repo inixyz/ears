@@ -8,30 +8,35 @@
 struct Cell {
   float p, courant;
 };
-
 // Global constants
-// const float WALL_IMPEDANCE = 200000; // rayl
-const float WALL_IMPEDANCE = 1'570'000;
-// const float WALL_IMPEDANCE = 400'000;
+const float WALL_IMPEDANCE = 200000; // rayl
+// const float WALL_IMPEDANCE = 4'000;
+// const float WALL_IMPEDANCE = 1'570'000;
 const float WALL_DENSITY = 510;
-const float AIR_SPEED = 343;
+const float AIR_SPEED = 343, MAT_SPEED = 1000;
 const float EW = WALL_IMPEDANCE / (WALL_DENSITY * AIR_SPEED);
+// const float EW = 1;
+const float reflection = (EW - 1) / (EW + 1);
 
-const float dx = 0.1;
-const float dt = dx / (AIR_SPEED * sqrt(2));
+const float dx = 0.01;
+const float dt = dx / (std::max(AIR_SPEED, MAT_SPEED) * sqrt(2));
+// const float dx = dt * AIR_SPEED * sqrt(2);
+
+const float AIR_COURANT = (dt * AIR_SPEED) / dx;
+const float MAT_COURANT = (dt * MAT_SPEED) / dx;
 
 const int world_width = 100, world_height = 100;
 const int scale = 14;
 Cell world[3][world_width][world_height];
 
 // Signal types
-const int source_type = 0;
+const int source_type = 1;
 const float impulse_value = 5;
-const int source_x = world_width / 4, source_y = world_height / 4;
-const int sinewave_freq = 500;
+const int source_x = world_width / 4, source_y = world_height / 2;
+const int sinewave_freq = 4000;
 
 // Receiver position and signal buffer
-const int receiver_x = 70, receiver_y = 70;
+const int receiver_x = world_width * 3 / 4, receiver_y = world_height / 2;
 const int max_signal_samples = 500;
 std::vector<float> receiver_signal;
 
@@ -55,8 +60,14 @@ void draw_world() {
       float p_norm = Remap(world[0][x][y].p, -1 * color_intensify,
                            1 * color_intensify, -128, 127);
       p_norm = fmax(fmin(p_norm, 127), -128);
-      color = Color{0, static_cast<unsigned char>(128 + p_norm),
-                    static_cast<unsigned char>(128 - p_norm), 255};
+
+      if (world[0][x][y].courant == AIR_COURANT) {
+        color = Color{0, static_cast<unsigned char>(128 + p_norm),
+                      static_cast<unsigned char>(128 - p_norm), 255};
+      } else if (world[0][x][y].courant == MAT_COURANT) {
+        color = Color{static_cast<unsigned char>(128 + p_norm), 0,
+                      static_cast<unsigned char>(128 - p_norm), 255};
+      }
 
       DrawRectangle(x * scale, y * scale, scale, scale, color);
     }
@@ -133,7 +144,11 @@ void init_world() {
     for (int y = 0; y < world_height; y++) {
       for (int t = 0; t < 3; t++) {
         world[t][x][y].p = 0;
-        world[t][x][y].courant = (dt * AIR_SPEED) / dx;
+        if (x >= world_width / 2) {
+          world[t][x][y].courant = MAT_COURANT;
+        } else {
+          world[t][x][y].courant = AIR_COURANT;
+        }
       }
     }
   }
@@ -148,7 +163,7 @@ void update_inner() {
           world[1][x][y + 1].p - 4 * world[1][x][y].p;
       world[0][x][y].p = world[1][x][y].courant * world[1][x][y].courant * N +
                          2 * world[1][x][y].p - world[2][x][y].p;
-      world[0][x][y].p *= 0.99;
+      world[0][x][y].p *= 1 - dx;
     }
   }
 }
@@ -269,16 +284,20 @@ void update_world() {
   if (source_type == 0) {
     if (timestep == 0)
       world[0][source_x][source_y].p = impulse_value;
+    else if (timestep == 1)
+      world[0][source_x][source_y].p = 0;
   } else if (source_type == 1) {
     world[0][source_x][source_y].p =
-        sin(2 * M_PI * sinewave_freq * timestep * dt);
+        impulse_value * sin(2 * M_PI * sinewave_freq * timestep * dt);
   }
 
   // Capture receiver signal
+  // if (timestep % 2 == 0) {
   receiver_signal.push_back(world[0][receiver_x][receiver_y].p);
   if (receiver_signal.size() > max_signal_samples) {
     receiver_signal.erase(receiver_signal.begin());
   }
+  // }
 
   timestep++;
 }
@@ -292,6 +311,7 @@ int main() {
   std::string dx_string = "dx: " + std::to_string(dx) + " [m]";
   std::string dt_string = "dt: " + std::to_string(dx) + " [s]";
   std::string ew_string = "Ew: " + std::to_string(EW);
+  std::string reflection_string = "refl: " + std::to_string(reflection);
   std::string size_string = "size: " + std::to_string(world_width * dx) +
                             " [m] x " + std::to_string(world_height * dx) +
                             " [m]     (" + std::to_string(world_width) + " x " +
@@ -322,8 +342,9 @@ int main() {
     DrawText(dx_string.c_str(), 20, 20, 30, RAYWHITE);
     DrawText(dt_string.c_str(), 20, 50, 30, RAYWHITE);
     DrawText(ew_string.c_str(), 20, 80, 30, RAYWHITE);
-    DrawText(size_string.c_str(), 20, 110, 30, RAYWHITE);
-    DrawText(("t: " + std::to_string(timestep * dt) + " [s]").c_str(), 20, 140,
+    DrawText(reflection_string.c_str(), 20, 110, 30, RAYWHITE);
+    DrawText(size_string.c_str(), 20, 140, 30, RAYWHITE);
+    DrawText(("t: " + std::to_string(timestep * dt) + " [s]").c_str(), 20, 170,
              30, RAYWHITE);
 
     EndDrawing();
