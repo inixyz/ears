@@ -9,13 +9,13 @@ struct Cell {
   float p, courant;
 };
 // Global constants
-const float WALL_IMPEDANCE = 200000; // rayl
+// const float WALL_IMPEDANCE = 200000; // rayl
 // const float WALL_IMPEDANCE = 4'000;
 // const float WALL_IMPEDANCE = 1'570'000;
 const float WALL_DENSITY = 510;
-const float AIR_SPEED = 343, MAT_SPEED = 1000;
-const float EW = WALL_IMPEDANCE / (WALL_DENSITY * AIR_SPEED);
-// const float EW = 1;
+const float AIR_SPEED = 343, MAT_SPEED = 400;
+// const float EW = WALL_IMPEDANCE / (WALL_DENSITY * AIR_SPEED);
+const float EW = 1;
 const float reflection = (EW - 1) / (EW + 1);
 
 const float dx = 0.01;
@@ -30,10 +30,10 @@ const int scale = 14;
 Cell world[3][world_width][world_height];
 
 // Signal types
-const int source_type = 1;
-const float impulse_value = 5;
+const int source_type = 0;
+const float impulse_value = 1;
 const int source_x = world_width / 4, source_y = world_height / 2;
-const int sinewave_freq = 4000;
+const int sinewave_freq = 100;
 
 // Receiver position and signal buffer
 const int receiver_x = world_width * 3 / 4, receiver_y = world_height / 2;
@@ -80,7 +80,7 @@ void draw_world() {
 
 // Function to draw the receiver signal graph with gradation lines
 void draw_graph() {
-  const float gain = 3;
+  const float gain = 1;
   const float thickness = 3;
 
   // Draw graph background
@@ -163,7 +163,7 @@ void update_inner() {
           world[1][x][y + 1].p - 4 * world[1][x][y].p;
       world[0][x][y].p = world[1][x][y].courant * world[1][x][y].courant * N +
                          2 * world[1][x][y].p - world[2][x][y].p;
-      world[0][x][y].p *= 1 - dx;
+      // world[0][x][y].p *= 1 - dx;
     }
   }
 }
