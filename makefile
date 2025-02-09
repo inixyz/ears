@@ -1,4 +1,4 @@
-SRC := src/*.cu
+SRC := src/*.cpp src/*.cu
 TARGET := app.out
 
 CC := nvcc 
