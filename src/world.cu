@@ -1,30 +1,68 @@
 #include "world.hpp"
 
+#include <cmath>
 #include <cstdint>
+#include <cuda_device_runtime_api.h>
 
-World::World(const Vec3<int> &size)
-    : size(size), slice_size(size.x * size.y), data_size(slice_size * size.z) {
+World::World(const Device device, const int size_x, const int size_y, const int size_z) {
+  this->device = device;
 
-  materials = new uint8_t[data_size]();
-  data_t0 = new float[data_size]();
-  data_t1 = new float[data_size]();
-  data_t2 = new float[data_size]();
-}
+  this->size_x = size_x;
+  this->size_y = size_y;
+  this->size_z = size_z;
+  this->size_slice = size_x * size_y;
+  this->size_data = this->size_slice * size_z;
 
-World::~World() {
-  if (on_gpu) {
-    cudaFree(materials);
-    cudaFree(data_t0);
-    cudaFree(data_t1);
-    cudaFree(data_t2);
-  } else {
-    delete[] materials;
-    delete[] data_t0;
-    delete[] data_t1;
-    delete[] data_t2;
+  if (device == CPU) {
+    courants = new float[NO_MATERIALS]();
+    courants_squared = new float[NO_MATERIALS]();
+    acoustic_impedances_doubled = new float[NO_MATERIALS]();
+
+    material_ids = new uint8_t[size_data]();
+    data_t0 = new float[size_data]();
+    data_t1 = new float[size_data]();
+    data_t2 = new float[size_data]();
+  } else if (device == GPU) {
+    const size_t material_attribute_bytes = NO_MATERIALS * sizeof(float);
+
+    cudaMalloc(&courants, material_attribute_bytes);
+    cudaMalloc(&courants_squared, material_attribute_bytes);
+    cudaMalloc(&acoustic_impedances_doubled, material_attribute_bytes);
+
+    cudaMalloc(&material_ids, size_data * sizeof(uint8_t));
+
+    const size_t data_bytes = size_data * sizeof(float);
+    cudaMalloc(&data_t0, data_bytes);
+    cudaMalloc(&data_t1, data_bytes);
+    cudaMalloc(&data_t2, data_bytes);
   }
 }
 
+World::~World() {
+  if (device == CPU) {
+    delete[] courants;
+    delete[] courants_squared;
+    delete[] acoustic_impedances_doubled;
+
+    delete[] material_ids;
+
+    delete[] data_t0;
+    delete[] data_t1;
+    delete[] data_t2;
+  } else if (device == GPU) {
+    cudaFree(courants);
+    cudaFree(courants_squared);
+    cudaFree(acoustic_impedances_doubled);
+
+    cudaFree(material_ids);
+
+    cudaFree(data_t0);
+    cudaFree(data_t1);
+    cudaFree(data_t2);
+  }
+}
+
+/*
 void World::to_gpu() {
   if (on_gpu)
     return;
@@ -54,3 +92,4 @@ void World::to_gpu() {
 
   on_gpu = true;
 }
+*/
