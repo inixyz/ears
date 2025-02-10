@@ -1,8 +1,6 @@
 #include "world.hpp"
 
-#include <cmath>
 #include <cstdint>
-#include <cuda_device_runtime_api.h>
 
 World::World(const Device device, const int size_x, const int size_y, const int size_z) {
   this->device = device;

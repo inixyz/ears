@@ -18,11 +18,9 @@ public:
   ~World();
 
 private:
-  // cpu only data
   Device device;
   int size_x, size_y, size_z, size_slice, size_data;
 
-  // device based data
   float *courants, *courants_squared, *acoustic_impedances_doubled;
   uint8_t *material_ids;
   float *data_t0, *data_t1, *data_t2;
