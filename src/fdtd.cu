@@ -1,4 +1,4 @@
-#include "fdtd_kernel.cuh"
+#include "fdtd.cuh"
 
 #include "vec.hpp"
 #include "world.cuh"
