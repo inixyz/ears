@@ -41,9 +41,7 @@ World::~World() {
     delete[] courants;
     delete[] courants_squared;
     delete[] acoustic_impedances_doubled;
-
     delete[] material_ids;
-
     delete[] data_t0;
     delete[] data_t1;
     delete[] data_t2;
@@ -51,9 +49,7 @@ World::~World() {
     cudaFree(courants);
     cudaFree(courants_squared);
     cudaFree(acoustic_impedances_doubled);
-
     cudaFree(material_ids);
-
     cudaFree(data_t0);
     cudaFree(data_t1);
     cudaFree(data_t2);
