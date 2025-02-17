@@ -1,14 +1,15 @@
 #include "world.cuh"
 
+#include "fdtd.cuh"
 #include "vec.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <driver_types.h>
 
 World::World(const Vec3<int> &size, const float grid_spacing_distance)
     : size(size), size_slice(size.x * size.y), size_grid(size_slice * size.z),
-      grid_spacing_distance(grid_spacing_distance) {
+      grid_spacing_distance(grid_spacing_distance),
+      dim_grid(dim3(size.x / dim_block.x, size.y / dim_block.y, size.z / dim_block.z)) {
 
   // alloc material attributes
   const size_t no_bytes_material_attributes = NO_MATERIALS * sizeof(float);
@@ -68,5 +69,16 @@ void World::compute_material_attributes() const {
                cudaMemcpyHostToDevice);
     cudaMemcpy(material_attributes.acoustic_impedances_doubled + i, &acoustic_impedance_doubled,
                sizeof(float), cudaMemcpyHostToDevice);
+  }
+}
+
+void World::step(const int no_iterations) {
+  for (int i = 0; i < no_iterations; i++) {
+    // advance time axis
+    std::swap(grid.t1, grid.t0);
+    std::swap(grid.t2, grid.t0);
+
+    fdtd_step<<<dim_grid, dim_block>>>(size, size_slice, material_attributes, grid);
+    cudaDeviceSynchronize();
   }
 }

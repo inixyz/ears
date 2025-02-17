@@ -3,6 +3,7 @@
 #include "vec.hpp"
 #include <array>
 #include <cstdint>
+#include <vector_types.h>
 
 class World {
 public:
@@ -25,12 +26,16 @@ public:
   World(const Vec3<int> &size, const float grid_spacing_distance);
   ~World();
   void compute_material_attributes() const;
+  void step(const int no_iterations = 1);
 
 private:
   // data on host
   const Vec3<int> size;
   const int size_slice, size_grid;
   const float grid_spacing_distance;
+
+  static constexpr dim3 dim_block = dim3(8, 8, 8);
+  const dim3 dim_grid;
 
   // data on device
   MaterialAttributes material_attributes;
