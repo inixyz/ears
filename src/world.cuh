@@ -22,13 +22,15 @@ public:
   static constexpr int NO_MATERIALS = 256;
   std::array<Material, NO_MATERIALS> materials;
 
-  World(const Vec3<int> &size);
+  World(const Vec3<int> &size, const float grid_spacing_distance);
   ~World();
+  void compute_material_attributes() const;
 
 private:
   // data on host
   const Vec3<int> size;
   const int size_slice, size_grid;
+  const float grid_spacing_distance;
 
   // data on device
   MaterialAttributes material_attributes;
