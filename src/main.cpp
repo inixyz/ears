@@ -1,5 +1,10 @@
-#include "world.hpp"
+#include "vec.hpp"
+#include "world.cuh"
+
+#include <iostream>
 
 int main() {
-  World world(World::GPU, 10, 10, 10);
+  World world(Vec3<int>(500, 500, 500));
+  int test;
+  std::cin >> test;
 }
