@@ -50,11 +50,11 @@ World::~World() {
 
 void World::compute_material_attributes() const {
   // compute max sound speed found in materials
-  auto comp_sound_speed = [](const Material lhs, const Material rhs) {
+  auto cmp_sound_speed = [](const Material lhs, const Material rhs) {
     return lhs.sound_speed < rhs.sound_speed;
   };
   const float max_sound_speed =
-      std::max_element(materials.begin(), materials.end(), comp_sound_speed)->sound_speed;
+      std::max_element(materials.begin(), materials.end(), cmp_sound_speed)->sound_speed;
 
   const float grid_spacing_temporal = grid_spacing_distance / (max_sound_speed * std::sqrt(3));
 
