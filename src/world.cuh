@@ -16,7 +16,7 @@ public:
   };
 
   struct Grid {
-    uint8_t *material_ids{};
+    uint8_t *material_id{};
     float *t0{}, *t1{}, *t2{};
   };
 
@@ -26,6 +26,17 @@ public:
   World(const Vec3<int> &size, const float grid_spacing_distance);
   ~World();
   void compute_material_attributes() const;
+
+  uint8_t get_material_id(const Vec3<int> &pos) const;
+  float get_t0(const Vec3<int> &pos) const;
+  float get_t1(const Vec3<int> &pos) const;
+  float get_t2(const Vec3<int> &pos) const;
+
+  void set_material_id(const Vec3<int> &pos, const uint8_t val) const;
+  void set_t0(const Vec3<int> &pos, const float val) const;
+  void set_t1(const Vec3<int> &pos, const float val) const;
+  void set_t2(const Vec3<int> &pos, const float val) const;
+
   void step(const int no_iterations = 1);
 
 private:

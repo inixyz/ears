@@ -42,7 +42,7 @@ __global__ void fdtd_step(const Vec3<int> size, const int size_slice,
     sum_neighbours += grid.t1[pos + size_slice];
   }
 
-  const uint8_t material_id = grid.material_ids[pos];
+  const uint8_t material_id = grid.material_id[pos];
   const float courant = material_attributes.courants[material_id];
   const float courant_squared = material_attributes.courants_squared[material_id];
   const float beta =

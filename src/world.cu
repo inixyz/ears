@@ -23,7 +23,7 @@ World::World(const Vec3<int> &size, const float grid_spacing_distance)
   cudaMemset(material_attributes.acoustic_impedances_doubled, 0, no_bytes_material_attributes);
 
   // alloc grid
-  cudaMalloc(&grid.material_ids, size_grid * sizeof(uint8_t));
+  cudaMalloc(&grid.material_id, size_grid * sizeof(uint8_t));
 
   const size_t no_bytes_grid = size_grid * sizeof(float);
 
@@ -43,7 +43,7 @@ World::~World() {
   cudaFree(material_attributes.acoustic_impedances_doubled);
 
   // free grid
-  cudaFree(grid.material_ids);
+  cudaFree(grid.material_id);
   cudaFree(grid.t0);
   cudaFree(grid.t1);
   cudaFree(grid.t2);
@@ -71,6 +71,30 @@ void World::compute_material_attributes() const {
                sizeof(float), cudaMemcpyHostToDevice);
   }
 }
+
+#define GENERATE_WORLD_GET(grid_member, dtype)                                                     \
+  dtype World::get_##grid_member(const Vec3<int> &pos) const {                                     \
+    const int i = pos.x + pos.y * size.x + pos.z * size_slice;                                     \
+    dtype val;                                                                                     \
+    cudaMemcpy(&val, grid.grid_member + i, sizeof(dtype), cudaMemcpyDeviceToHost);                 \
+    return val;                                                                                    \
+  }
+
+GENERATE_WORLD_GET(material_id, uint8_t)
+GENERATE_WORLD_GET(t0, float)
+GENERATE_WORLD_GET(t1, float)
+GENERATE_WORLD_GET(t2, float)
+
+#define GENERATE_WORLD_SET(grid_member, dtype)                                                     \
+  void World::set_##grid_member(const Vec3<int> &pos, const dtype val) const {                     \
+    const int i = pos.x + pos.y * size.x + pos.z * size_slice;                                     \
+    cudaMemcpy(grid.grid_member + i, &val, sizeof(dtype), cudaMemcpyHostToDevice);                 \
+  }
+
+GENERATE_WORLD_SET(material_id, uint8_t)
+GENERATE_WORLD_SET(t0, float)
+GENERATE_WORLD_SET(t1, float)
+GENERATE_WORLD_SET(t2, float)
 
 void World::step(const int no_iterations) {
   for (int i = 0; i < no_iterations; i++) {
