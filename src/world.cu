@@ -6,7 +6,7 @@
 #include <cmath>
 #include <cstdint>
 
-World::World(const Vec3<int> &size, const float grid_spacing_distance)
+World::World(const Vec3i &size, const float grid_spacing_distance)
     : size(size), size_slice(size.x * size.y), size_grid(size_slice * size.z),
       grid_spacing_distance(grid_spacing_distance),
       dim_grid(dim3(size.x / dim_block.x, size.y / dim_block.y, size.z / dim_block.z)) {
@@ -73,7 +73,7 @@ void World::compute_material_attributes() const {
 }
 
 #define GENERATE_WORLD_GET(grid_member, dtype)                                                     \
-  dtype World::get_##grid_member(const Vec3<int> &pos) const {                                     \
+  dtype World::get_##grid_member(const Vec3i &pos) const {                                         \
     const int i = pos.x + pos.y * size.x + pos.z * size_slice;                                     \
     dtype val;                                                                                     \
     cudaMemcpy(&val, grid.grid_member + i, sizeof(dtype), cudaMemcpyDeviceToHost);                 \
@@ -86,7 +86,7 @@ GENERATE_WORLD_GET(t1, float)
 GENERATE_WORLD_GET(t2, float)
 
 #define GENERATE_WORLD_SET(grid_member, dtype)                                                     \
-  void World::set_##grid_member(const Vec3<int> &pos, const dtype val) const {                     \
+  void World::set_##grid_member(const Vec3i &pos, const dtype val) const {                         \
     const int i = pos.x + pos.y * size.x + pos.z * size_slice;                                     \
     cudaMemcpy(grid.grid_member + i, &val, sizeof(dtype), cudaMemcpyHostToDevice);                 \
   }

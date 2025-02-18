@@ -10,3 +10,5 @@ struct Vec3 {
     this->z = z;
   }
 };
+
+using Vec3i = Vec3<int>;

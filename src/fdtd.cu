@@ -4,7 +4,7 @@
 #include "world.cuh"
 #include <cstdint>
 
-__global__ void fdtd_step(const Vec3<int> size, const int size_slice,
+__global__ void fdtd_step(const Vec3i size, const int size_slice,
                           const World::MaterialAttributes material_attributes,
                           const World::Grid grid) {
 
