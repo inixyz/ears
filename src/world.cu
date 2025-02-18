@@ -49,27 +49,8 @@ World::~World() {
   cudaFree(grid.t2);
 }
 
-void World::compute_material_attributes() const {
-  // compute max sound speed found in materials
-  auto cmp_sound_speed = [](const Material lhs, const Material rhs) {
-    return lhs.sound_speed < rhs.sound_speed;
-  };
-  const float max_sound_speed =
-      std::max_element(materials.begin(), materials.end(), cmp_sound_speed)->sound_speed;
-
-  const float grid_spacing_temporal = grid_spacing_distance / (max_sound_speed * std::sqrt(3));
-
-  for (int i = 0; i < NO_MATERIALS; i++) {
-    const float courant = materials[i].sound_speed * grid_spacing_temporal / grid_spacing_distance;
-    const float courant_squared = courant * courant;
-    const float acoustic_impedance_doubled = 2 * materials[i].acoustic_impedance;
-
-    cudaMemcpy(material_attributes.courants + i, &courant, sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(material_attributes.courants_squared + i, &courant_squared, sizeof(float),
-               cudaMemcpyHostToDevice);
-    cudaMemcpy(material_attributes.acoustic_impedances_doubled + i, &acoustic_impedance_doubled,
-               sizeof(float), cudaMemcpyHostToDevice);
-  }
+const Vec3i &World::get_size() const {
+  return size;
 }
 
 #define GENERATE_WORLD_GET(grid_member, dtype)                                                     \
@@ -95,6 +76,29 @@ GENERATE_WORLD_SET(material_id, uint8_t)
 GENERATE_WORLD_SET(t0, float)
 GENERATE_WORLD_SET(t1, float)
 GENERATE_WORLD_SET(t2, float)
+
+void World::compute_material_attributes() const {
+  // compute max sound speed found in materials
+  auto cmp_sound_speed = [](const Material lhs, const Material rhs) {
+    return lhs.sound_speed < rhs.sound_speed;
+  };
+  const float max_sound_speed =
+      std::max_element(materials.begin(), materials.end(), cmp_sound_speed)->sound_speed;
+
+  const float grid_spacing_temporal = grid_spacing_distance / (max_sound_speed * std::sqrt(3));
+
+  for (int i = 0; i < NO_MATERIALS; i++) {
+    const float courant = materials[i].sound_speed * grid_spacing_temporal / grid_spacing_distance;
+    const float courant_squared = courant * courant;
+    const float acoustic_impedance_doubled = 2 * materials[i].acoustic_impedance;
+
+    cudaMemcpy(material_attributes.courants + i, &courant, sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(material_attributes.courants_squared + i, &courant_squared, sizeof(float),
+               cudaMemcpyHostToDevice);
+    cudaMemcpy(material_attributes.acoustic_impedances_doubled + i, &acoustic_impedance_doubled,
+               sizeof(float), cudaMemcpyHostToDevice);
+  }
+}
 
 void World::step(const int no_iterations) {
   for (int i = 0; i < no_iterations; i++) {

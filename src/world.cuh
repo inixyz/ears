@@ -25,7 +25,8 @@ public:
 
   World(const Vec3i &size, const float grid_spacing_distance);
   ~World();
-  void compute_material_attributes() const;
+
+  const Vec3i &get_size() const;
 
   uint8_t get_material_id(const Vec3<int> &pos) const;
   float get_t0(const Vec3i &pos) const;
@@ -37,6 +38,7 @@ public:
   void set_t1(const Vec3i &pos, const float val) const;
   void set_t2(const Vec3i &pos, const float val) const;
 
+  void compute_material_attributes() const;
   void step(const int no_iterations = 1);
 
 private:
