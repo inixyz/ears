@@ -43,13 +43,12 @@ __global__ void fdtd_step(const Vec3i size, const int size_slice,
   }
 
   const uint8_t material_id = grid.material_id[pos];
-  const float courant = material_attributes.courants[material_id];
   const float courant_squared = material_attributes.courants_squared[material_id];
-  const float beta =
-      (6 - nr_neighbours) / material_attributes.acoustic_impedances_doubled[material_id];
+  const float courant_mul_beta = material_attributes.courants[material_id] * (6 - nr_neighbours) /
+                                 material_attributes.acoustic_impedances_doubled[material_id];
 
   grid.t0[pos] =
       (courant_squared * sum_neighbours + (2 - nr_neighbours * courant_squared) * grid.t1[pos] +
-       (courant * beta - 1) * grid.t2[pos]) /
-      (1 + courant * beta);
+       (courant_mul_beta - 1) * grid.t2[pos]) /
+      (1 + courant_mul_beta);
 }

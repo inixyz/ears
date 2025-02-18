@@ -19,15 +19,15 @@ int main() {
   auto end_time = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> total_time = end_time - start_time;
   printf("[INFO] Processing took %lf seconds.\n", total_time.count());
-
-  for (int z = 0; z < world.get_size().z; z++) {
-    std::cout << " z=" << z << std::endl;
-    for (int y = 0; y < world.get_size().y; y++) {
-      for (int x = 0; x < world.get_size().x; x++)
-        printf("%.1f ", world.get_t0(Vec3i(x, y, z)));
-      std::cout << std::endl;
-    }
-    std::cout << std::endl;
-  }
-  std::cout << std::endl;
+  //
+  // for (int z = 0; z < world.get_size().z; z++) {
+  //   std::cout << " z=" << z << std::endl;
+  //   for (int y = 0; y < world.get_size().y; y++) {
+  //     for (int x = 0; x < world.get_size().x; x++)
+  //       printf("%.1f ", world.get_t0(Vec3i(x, y, z)));
+  //     std::cout << std::endl;
+  //   }
+  //   std::cout << std::endl;
+  // }
+  // std::cout << std::endl;
 }
