@@ -1,33 +1,33 @@
-#include "vec.cuh"
-#include "world.cuh"
+#include "imgui.h"
+#include "rlImGui.h"
+#include <raylib.h>
 
-#include <chrono>
-#include <iostream>
+void menu() {
+  ImGui::Begin("boss");
+  ImGui::Text("Hello, World!");
+  ImGui::End();
+}
 
 int main() {
-  World world(Vec3i(8, 8, 8), 0.1, Vec3i(1, 1, 1), Vec3i(8, 8, 8));
+  SetTraceLogLevel(LOG_WARNING);
+  InitWindow(2000, 2000, "app");
+  rlImGuiSetup(false);
+  constexpr float menu_scale_factor = 1.5;
+  ImGui::GetIO().FontGlobalScale = menu_scale_factor;
+  ImGui::GetStyle().ScaleAllSizes(menu_scale_factor);
 
-  world.materials[0] = {343, 0.5};
-  world.compute_material_attributes();
+  while (!WindowShouldClose()) {
+    BeginDrawing();
+    ClearBackground(BLACK);
 
-  world.set_t0(Vec3i(3, 3, 3), 1);
+    rlImGuiBegin();
+    menu();
+    rlImGuiEnd();
 
-  auto start_time = std::chrono::high_resolution_clock::now();
+    DrawFPS(50, 50);
+    EndDrawing();
+  }
 
-  world.step(10000);
-
-  auto end_time = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> total_time = end_time - start_time;
-  printf("[INFO] Processing took %lf seconds.\n", total_time.count());
-  //
-  // for (int z = 0; z < world.get_size().z; z++) {
-  //   std::cout << " z=" << z << std::endl;
-  //   for (int y = 0; y < world.get_size().y; y++) {
-  //     for (int x = 0; x < world.get_size().x; x++)
-  //       printf("%.1f ", world.get_t0(Vec3i(x, y, z)));
-  //     std::cout << std::endl;
-  //   }
-  //   std::cout << std::endl;
-  // }
-  // std::cout << std::endl;
+  rlImGuiShutdown();
+  CloseWindow();
 }
