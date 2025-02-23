@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector_types.h>
+
 template <typename T>
 struct Vec3 {
   T x{}, y{}, z{};
@@ -8,6 +10,10 @@ struct Vec3 {
     this->x = x;
     this->y = y;
     this->z = z;
+  }
+
+  operator dim3() const {
+    return dim3(x, y, z);
   }
 };
 

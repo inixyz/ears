@@ -1,11 +1,11 @@
-#include "vec.hpp"
+#include "vec.cuh"
 #include "world.cuh"
 
 #include <chrono>
 #include <iostream>
 
 int main() {
-  World world(Vec3i(8, 8, 8), 0.1);
+  World world(Vec3i(8, 8, 8), 0.1, Vec3i(1, 1, 1), Vec3i(8, 8, 8));
 
   world.materials[0] = {343, 0.5};
   world.compute_material_attributes();
@@ -14,7 +14,7 @@ int main() {
 
   auto start_time = std::chrono::high_resolution_clock::now();
 
-  world.step(1000);
+  world.step(10000);
 
   auto end_time = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> total_time = end_time - start_time;

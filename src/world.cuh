@@ -1,9 +1,8 @@
 #pragma once
 
-#include "vec.hpp"
+#include "vec.cuh"
 #include <array>
 #include <cstdint>
-#include <vector_types.h>
 
 class World {
 public:
@@ -23,7 +22,7 @@ public:
   static constexpr int NO_MATERIALS = 256;
   std::array<Material, NO_MATERIALS> materials;
 
-  World(const Vec3i &size, const float grid_spacing_distance);
+  World(const Vec3i &size, const float spacing_distance, const dim3 dim_grid, const dim3 dim_block);
   ~World();
 
   const Vec3i &get_size() const;
@@ -38,17 +37,19 @@ public:
   void set_t1(const Vec3i &pos, const float val) const;
   void set_t2(const Vec3i &pos, const float val) const;
 
-  void compute_material_attributes() const;
-  void step(const int no_iterations = 1);
+  void compute_material_attributes();
+  void step();
+  void step(const int no_iterations);
 
 private:
   // data on host
-  const Vec3<int> size;
+  const Vec3i size;
   const int size_slice, size_grid;
-  const float grid_spacing_distance;
 
-  static constexpr dim3 dim_block = dim3(8, 8, 8);
-  const dim3 dim_grid;
+  const float spacing_distance;
+  float spacing_temporal;
+
+  const dim3 dim_grid, dim_block;
 
   // data on device
   MaterialAttributes material_attributes;

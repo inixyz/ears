@@ -1,15 +1,14 @@
 #include "world.cuh"
 
 #include "fdtd.cuh"
-#include "vec.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 
-World::World(const Vec3i &size, const float grid_spacing_distance)
+World::World(const Vec3i &size, const float spacing_distance, const dim3 dim_grid,
+             const dim3 dim_block)
     : size(size), size_slice(size.x * size.y), size_grid(size_slice * size.z),
-      grid_spacing_distance(grid_spacing_distance),
-      dim_grid(dim3(size.x / dim_block.x, size.y / dim_block.y, size.z / dim_block.z)) {
+      spacing_distance(spacing_distance), dim_grid(dim_grid), dim_block(dim_block) {
 
   // alloc material attributes
   const size_t no_bytes_material_attributes = NO_MATERIALS * sizeof(float);
@@ -77,7 +76,7 @@ GENERATE_WORLD_SET(t0, float)
 GENERATE_WORLD_SET(t1, float)
 GENERATE_WORLD_SET(t2, float)
 
-void World::compute_material_attributes() const {
+void World::compute_material_attributes() {
   // compute max sound speed found in materials
   auto cmp_sound_speed = [](const Material lhs, const Material rhs) {
     return lhs.sound_speed < rhs.sound_speed;
@@ -85,10 +84,12 @@ void World::compute_material_attributes() const {
   const float max_sound_speed =
       std::max_element(materials.begin(), materials.end(), cmp_sound_speed)->sound_speed;
 
-  const float grid_spacing_temporal = grid_spacing_distance / (max_sound_speed * std::sqrt(3));
+  // adjust dt to satisfy CFL stability condition
+  spacing_temporal = spacing_distance / (max_sound_speed * std::sqrt(3));
 
+  // pre-compute material attributes
   for (int i = 0; i < NO_MATERIALS; i++) {
-    const float courant = materials[i].sound_speed * grid_spacing_temporal / grid_spacing_distance;
+    const float courant = materials[i].sound_speed * spacing_temporal / spacing_distance;
     const float courant_squared = courant * courant;
     const float acoustic_impedance_doubled = 2 * materials[i].acoustic_impedance;
 
@@ -100,13 +101,16 @@ void World::compute_material_attributes() const {
   }
 }
 
-void World::step(const int no_iterations) {
-  for (int i = 0; i < no_iterations; i++) {
-    // advance time axis
-    std::swap(grid.t1, grid.t0);
-    std::swap(grid.t2, grid.t0);
+void World::step() {
+  // advance time axis
+  std::swap(grid.t1, grid.t0);
+  std::swap(grid.t2, grid.t0);
 
-    fdtd_step<<<dim_grid, dim_block>>>(size, size_slice, material_attributes, grid);
-    cudaDeviceSynchronize();
-  }
+  fdtd_step<<<dim_grid, dim_block>>>(size, size_slice, material_attributes, grid);
+  cudaDeviceSynchronize();
+}
+
+void World::step(const int no_iterations) {
+  for (int i = 0; i < no_iterations; i++)
+    step();
 }
