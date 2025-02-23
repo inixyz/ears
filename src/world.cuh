@@ -26,6 +26,8 @@ public:
   ~World();
 
   const Vec3i &get_size() const;
+  float get_spacing_distance() const;
+  float get_spacing_temporal() const;
 
   uint8_t get_material_id(const Vec3<int> &pos) const;
   float get_t0(const Vec3i &pos) const;

@@ -52,6 +52,14 @@ const Vec3i &World::get_size() const {
   return size;
 }
 
+float World::get_spacing_distance() const {
+  return spacing_distance;
+}
+
+float World::get_spacing_temporal() const {
+  return spacing_temporal;
+}
+
 #define GENERATE_WORLD_GET(grid_member, dtype)                                                     \
   dtype World::get_##grid_member(const Vec3i &pos) const {                                         \
     const int i = pos.x + pos.y * size.x + pos.z * size_slice;                                     \
