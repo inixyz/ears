@@ -6,7 +6,7 @@ IMGUI_INC = src/imgui/
 
 CC := nvcc 
 CCFLAGS := -Wall -Werror
-LDLIBS := -lraylib -lGL -lm -lX11
+LDLIBS := -lraylib -lGL -lm -lX11 -lsndfile
 COMPILE_COMMAND = bear -- $(CC) $(SRC) -o $(TARGET) $(IMGUI_SRC) -I $(IMGUI_INC) $(LDLIBS)
 
 .PHONY: all debug clean
