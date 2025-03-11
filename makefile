@@ -5,7 +5,7 @@ IMGUI_SRC = src/imgui/*.cpp
 IMGUI_INC = src/imgui/
 
 CC := nvcc 
-CCFLAGS := -Wall -Werror
+CCFLAGS := -std=c++23 -Wall -Werror
 LDLIBS := -lraylib -lGL -lm -lX11 -lsndfile
 COMPILE_COMMAND = bear -- $(CC) $(SRC) -o $(TARGET) $(IMGUI_SRC) -I $(IMGUI_INC) $(LDLIBS)
 
