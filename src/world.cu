@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <iostream>
 
 World::World(const Vec3i &size, const float spacing_distance, const dim3 dim_grid,
              const dim3 dim_block)
@@ -100,6 +101,9 @@ void World::compute_material_attributes() {
     const float courant = materials[i].sound_speed * spacing_temporal / spacing_distance;
     const float courant_squared = courant * courant;
     const float acoustic_impedance_doubled = 2 * materials[i].acoustic_impedance;
+
+    if (i == 0)
+      std::cout << courant << " " << courant_squared << std::endl;
 
     cudaMemcpy(material_attributes.courants + i, &courant, sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(material_attributes.courants_squared + i, &courant_squared, sizeof(float),

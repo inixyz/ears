@@ -81,9 +81,9 @@ __global__ void fdtd_step_that_works(const Vec3i size, const int size_slice,
   grid.t0[pos] = 0.33 * (sum_neighbours - 6 * grid.t1[pos]) + 2 * grid.t1[pos] - grid.t2[pos];
 }
 
-__global__ void fdtd_step(const Vec3i size, const int size_slice,
-                          const World::MaterialAttributes material_attributes,
-                          const World::Grid grid) {
+__global__ void fdtd_step_crazy(const Vec3i size, const int size_slice,
+                                const World::MaterialAttributes material_attributes,
+                                const World::Grid grid) {
 
   const int x = threadIdx.x + blockIdx.x * blockDim.x;
   const int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -126,4 +126,42 @@ __global__ void fdtd_step(const Vec3i size, const int size_slice,
 
   // FDTD update equation
   grid.t0[pos] = S2 * (sum_neighbours - 6 * grid.t1[pos]) + 2 * grid.t1[pos] - grid.t2[pos];
+}
+
+__global__ void fdtd_step(const Vec3i size, const int size_slice,
+                          const World::MaterialAttributes material_attributes,
+                          const World::Grid grid) {
+
+  const int x = threadIdx.x + blockIdx.x * blockDim.x;
+  const int y = threadIdx.y + blockIdx.y * blockDim.y;
+  const int z = threadIdx.z + blockIdx.z * blockDim.z;
+
+  const int pos = x + y * size.x + z * size_slice;
+
+  float sum_neighbours = 0;
+
+  if (x > 0) {
+    sum_neighbours += grid.t1[pos - 1];
+  }
+  if (y > 0) {
+    sum_neighbours += grid.t1[pos - size.x];
+  }
+  if (z > 0) {
+    sum_neighbours += grid.t1[pos - size_slice];
+  }
+  if (x < size.x - 1) {
+    sum_neighbours += grid.t1[pos + 1];
+  }
+  if (y < size.y - 1) {
+    sum_neighbours += grid.t1[pos + size.x];
+  }
+  if (z < size.z - 1) {
+    sum_neighbours += grid.t1[pos + size_slice];
+  }
+
+  const uint8_t material_id = grid.material_id[pos];
+  const float courant_squared = material_attributes.courants_squared[material_id];
+
+  grid.t0[pos] = courant_squared * sum_neighbours + 2 * (1 - 3 * courant_squared) * grid.t1[pos] -
+                 grid.t2[pos];
 }
