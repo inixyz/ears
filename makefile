@@ -1,13 +1,10 @@
 SRC := src/*.cpp src/*.cu
 TARGET := app.out
 
-IMGUI_SRC = src/imgui/*.cpp
-IMGUI_INC = src/imgui/
-
 CC := nvcc 
 CCFLAGS := -std=c++23 -Wall -Werror
 LDLIBS := -lraylib -lGL -lm -lX11 -lsndfile
-COMPILE_COMMAND = bear -- $(CC) $(SRC) -o $(TARGET) $(IMGUI_SRC) -I $(IMGUI_INC) $(LDLIBS)
+COMPILE_COMMAND = bear -- $(CC) $(SRC) -o $(TARGET) $(LDLIBS)
 
 .PHONY: all debug clean
 
