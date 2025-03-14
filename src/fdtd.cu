@@ -4,9 +4,9 @@
 #include "world.cuh"
 #include <cstdint>
 
-__global__ void fdtd_step_old(const Vec3i size, const int size_slice,
-                              const World::MaterialAttributes material_attributes,
-                              const World::Grid grid) {
+__global__ void fdtd_step(const Vec3i size, const int size_slice,
+                          const World::MaterialAttributes material_attributes,
+                          const World::Grid grid) {
 
   const int x = threadIdx.x + blockIdx.x * blockDim.x;
   const int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -128,9 +128,9 @@ __global__ void fdtd_step_crazy(const Vec3i size, const int size_slice,
   grid.t0[pos] = S2 * (sum_neighbours - 6 * grid.t1[pos]) + 2 * grid.t1[pos] - grid.t2[pos];
 }
 
-__global__ void fdtd_step(const Vec3i size, const int size_slice,
-                          const World::MaterialAttributes material_attributes,
-                          const World::Grid grid) {
+__global__ void fdtd_step_old(const Vec3i size, const int size_slice,
+                              const World::MaterialAttributes material_attributes,
+                              const World::Grid grid) {
 
   const int x = threadIdx.x + blockIdx.x * blockDim.x;
   const int y = threadIdx.y + blockIdx.y * blockDim.y;
