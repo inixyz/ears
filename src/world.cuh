@@ -57,3 +57,18 @@ private:
   MaterialAttributes material_attributes;
   Grid grid;
 };
+
+namespace ears {
+
+class World {
+public:
+  World(const Vec3i &size);
+  ~World();
+
+private:
+  const Vec3i size;
+  const int size_xy, size_xyz;
+  float *t0 = nullptr, *t1 = nullptr, *t2 = nullptr;
+};
+
+} // namespace ears

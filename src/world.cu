@@ -4,50 +4,43 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <cstdlib>
+#include <cuda_device_runtime_api.h>
+#include <driver_types.h>
 #include <iostream>
 
-World::World(const Vec3i &size, const float spacing_distance, const dim3 dim_grid,
-             const dim3 dim_block)
-    : size(size), size_slice(size.x * size.y), size_grid(size_slice * size.z),
-      spacing_distance(spacing_distance), dim_grid(dim_grid), dim_block(dim_block) {
+inline void cuda_check(const cudaError_t err, const char *const file, const int line,
+                       const char *const func) {
+  if (err != cudaSuccess) {
+    std::cerr << "[CUDA ERROR] " << file << ":" << line << ": " << func << ": "
+              << cudaGetErrorString(err) << std::endl;
+    std::exit(EXIT_FAILURE);
+  }
+}
 
-  // alloc material attributes
-  const size_t no_bytes_material_attributes = NO_MATERIALS * sizeof(float);
+#define CUDA_CHECK(func) cuda_check(func, __FILE__, __LINE__, #func)
 
-  cudaMalloc(&material_attributes.courants, no_bytes_material_attributes);
-  cudaMalloc(&material_attributes.courants_squared, no_bytes_material_attributes);
-  cudaMalloc(&material_attributes.acoustic_impedances_doubled, no_bytes_material_attributes);
+namespace ears {
 
-  cudaMemset(material_attributes.courants, 0, no_bytes_material_attributes);
-  cudaMemset(material_attributes.courants_squared, 0, no_bytes_material_attributes);
-  cudaMemset(material_attributes.acoustic_impedances_doubled, 0, no_bytes_material_attributes);
+World::World(const Vec3i &size) : size(size), size_xy(size.x * size.y), size_xyz(size_xy * size.z) {
+  const size_t no_bytes = size_xyz * sizeof(float);
 
-  // alloc grid
-  cudaMalloc(&grid.material_id, size_grid * sizeof(uint8_t));
+  CUDA_CHECK(cudaMalloc(&t0, no_bytes));
+  CUDA_CHECK(cudaMalloc(&t1, no_bytes));
+  CUDA_CHECK(cudaMalloc(&t2, no_bytes));
 
-  const size_t no_bytes_grid = size_grid * sizeof(float);
-
-  cudaMalloc(&grid.t0, no_bytes_grid);
-  cudaMalloc(&grid.t1, no_bytes_grid);
-  cudaMalloc(&grid.t2, no_bytes_grid);
-
-  cudaMemset(grid.t0, 0, no_bytes_grid);
-  cudaMemset(grid.t1, 0, no_bytes_grid);
-  cudaMemset(grid.t2, 0, no_bytes_grid);
+  CUDA_CHECK(cudaMemset(t0, 0, no_bytes));
+  CUDA_CHECK(cudaMemset(t1, 0, no_bytes));
+  CUDA_CHECK(cudaMemset(t2, 0, no_bytes));
 }
 
 World::~World() {
-  // free material attributes
-  cudaFree(material_attributes.courants);
-  cudaFree(material_attributes.courants_squared);
-  cudaFree(material_attributes.acoustic_impedances_doubled);
-
-  // free grid
-  cudaFree(grid.material_id);
-  cudaFree(grid.t0);
-  cudaFree(grid.t1);
-  cudaFree(grid.t2);
+  CUDA_CHECK(cudaFree(t0));
+  CUDA_CHECK(cudaFree(t1));
+  CUDA_CHECK(cudaFree(t2));
 }
+
+} // namespace ears
 
 const Vec3i &World::get_size() const {
   return size;
