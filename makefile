@@ -4,7 +4,7 @@ TARGET := app.out
 CC := nvcc 
 CCFLAGS := -std=c++20
 LDLIBS := -lraylib -lGL -lm -lX11 -lsndfile
-COMPILE_COMMAND = bear -- $(CC) $(SRC) -o $(TARGET) $(LDLIBS) $(CCFLAGS) 
+COMPILE_COMMAND = bear -- $(CC) $(SRC) -o $(TARGET) $(LDLIBS) 
 
 .PHONY: all debug clean
 
