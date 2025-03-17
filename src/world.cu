@@ -1,7 +1,7 @@
 #include "world.cuh"
 
 #include "cuda_utils.cuh"
-#include <cstdlib>
+#include <algorithm>
 
 namespace ears {
 
@@ -22,8 +22,11 @@ World::World(const Vec3i &size, const float courant, const dim3 dim_grid, const 
 
 World::~World() {
   CUDA_CHECK(cudaFree(t0));
+  t0 = nullptr;
   CUDA_CHECK(cudaFree(t1));
+  t1 = nullptr;
   CUDA_CHECK(cudaFree(t2));
+  t2 = nullptr;
 }
 
 const Vec3i &World::get_size() const {
@@ -58,13 +61,34 @@ GENERATE_WORLD_SET(t2, float)
 
 __global__ void fdtd(const Vec3i size, const int size_xy, const float courant, float *const t0,
                      const float *const t1, const float *const t2) {
+
+  const int x = threadIdx.x + blockIdx.x * blockDim.x;
+  const int y = threadIdx.y + blockIdx.y * blockDim.y;
+  const int z = threadIdx.z + blockIdx.z * blockDim.z;
+
+  const int pos = x + y * size.x + z * size_xy;
+
+  float sum_neighbours = 0;
+
+  if (x > 0)
+    sum_neighbours += t1[pos - 1];
+  if (y > 0)
+    sum_neighbours += t1[pos - size.x];
+  if (z > 0)
+    sum_neighbours += t1[pos - size_xy];
+  if (x < size.x - 1)
+    sum_neighbours += t1[pos + 1];
+  if (y < size.y - 1)
+    sum_neighbours += t1[pos + size.x];
+  if (z < size.z - 1)
+    sum_neighbours += t1[pos + size_xy];
+
+  t0[pos] = courant * courant * (sum_neighbours - 6 * t1[pos]) + 2 * t1[pos] - t2[pos];
 }
 
 void World::step() {
-  float *const swap = t2;
-  t2 = t1;
-  t1 = t0;
-  t0 = swap;
+  std::swap(t1, t0);
+  std::swap(t2, t0);
 
   fdtd<<<dim_grid, dim_block>>>(size, size_xy, courant, t0, t1, t2);
   CUDA_CHECK(cudaDeviceSynchronize());
