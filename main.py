@@ -11,15 +11,15 @@ def gaussian_pulse(t, t0=20, sigma=5, amplitude=20):
 
 def main():
     # Set world size to 25x25x25
-    world_size = ears.Vec3i(25, 25, 25)
+    world_size = ears.Vec3i(100, 50, 100)
     dx = 0.5  # Grid spacing
-    source_position = ears.Vec3i(12, 12, 12)  # Source centered in the smaller grid
-    world = ears.World(world_size, dx, ears.Vec3i(5, 5, 5), ears.Vec3i(5, 5, 5))
+    source_position = ears.Vec3i(50, 25, 50)  # Source centered in the smaller grid
+    world = ears.World(world_size, dx, ears.Vec3i(10, 5, 10), ears.Vec3i(10, 10, 10))
 
     # Visualization setup
     fig, ax = plt.subplots()
-    slice_z = 12  # Z-plane slice to visualize (middle of 25)
-    initial_data = np.zeros((25, 25))  # Initialize empty data array
+    slice_z = 50  # Z-plane slice to visualize (middle of 25)
+    initial_data = np.zeros((100, 50))  # Initialize empty data array
     image = ax.imshow(initial_data, cmap="RdBu", animated=True)
 
     ax.set_title("Acoustic Wave Propagation (Z-Slice)")
@@ -35,7 +35,7 @@ def main():
         nonlocal t
 
         # Apply Gaussian pulse at the source for the first few steps
-        if t < 1:
+        if t < 40:
             world.set_t0(
                 source_position, gaussian_pulse(t, t0=20, sigma=5, amplitude=20)
             )
@@ -44,7 +44,7 @@ def main():
         t += 1  # Increase time
 
         # Extract 2D slice at z = 12 using vectorized lookup
-        x_indices, y_indices = np.meshgrid(np.arange(25), np.arange(25), indexing="ij")
+        x_indices, y_indices = np.meshgrid(np.arange(100), np.arange(50), indexing="ij")
         get_t0_vec = np.vectorize(
             lambda x, y: world.get_t0(ears.Vec3i(int(x), int(y), slice_z))
         )
@@ -60,7 +60,7 @@ def main():
         return (image,)
 
     # Faster animation with interval optimization
-    ani = animation.FuncAnimation(fig, update, frames=500, interval=20, blit=False)
+    ani = animation.FuncAnimation(fig, update, frames=500, interval=1, blit=False)
     plt.show()
 
 
