@@ -1,6 +1,7 @@
 #include "world.cuh"
 
 #include "cuda_utils.cuh"
+#include "vec.cuh"
 #include <algorithm>
 
 namespace ears {

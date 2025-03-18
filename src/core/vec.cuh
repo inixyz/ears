@@ -2,6 +2,8 @@
 
 #include <vector_types.h>
 
+namespace ears {
+
 template <typename T>
 struct Vec3 {
   T x{}, y{}, z{};
@@ -18,3 +20,5 @@ struct Vec3 {
 };
 
 using Vec3i = Vec3<int>;
+
+} // namespace ears

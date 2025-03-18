@@ -1,6 +1,7 @@
 #pragma once
 
 #include "vec.cuh"
+#include <vector_types.h>
 
 namespace ears {
 
@@ -11,6 +12,7 @@ public:
 
   const Vec3i &get_size() const;
   float get_courant() const;
+
   float get_t0(const Vec3i &pos) const;
   float get_t1(const Vec3i &pos) const;
   float get_t2(const Vec3i &pos) const;

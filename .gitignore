@@ -1,4 +1,3 @@
-app.out
-compile_commands.json
+build/
 .cache/
-imgui.ini
+compile_commands.json

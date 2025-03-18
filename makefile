@@ -1,18 +1,19 @@
-SRC := src/*.cpp src/*.cu
-TARGET := app.out
+CORE := src/core
+SRC := $(CORE)/*.cu src/*.cpp
+PYBIND11 := $(shell python -m pybind11 --includes)
+TARGET := build/ears$(shell python3-config --extension-suffix)
 
 CC := nvcc 
-CCFLAGS := -std=c++20
-LDLIBS := -lraylib -lGL -lm -lX11 -lsndfile
-COMPILE_COMMAND = bear -- $(CC) $(SRC) -o $(TARGET) $(LDLIBS) 
+CCFLAGS := -Xcompiler "-Wall, -fPIC" -shared
+COMPILE_COMMAND = bear -- $(CC) $(CCFLAGS) $(SRC) $(PYBIND11) -o $(TARGET)
 
-.PHONY: all debug clean
+.PHONY: all clean
 
 all:
+	mkdir -p build
 	$(COMPILE_COMMAND)
 
-debug:
-	$(COMPILE_COMMAND) -g
-
 clean:
-	rm $(TARGET) compile_commands.json
+	test -d build && rm -r build || true
+	test -d .cache && rm -r .cache || true
+	test -f compile_commands.json && rm compile_commands.json || true
