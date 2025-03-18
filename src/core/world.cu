@@ -6,7 +6,7 @@
 
 namespace ears {
 
-World::World(const Vec3i &size, const float courant, const dim3 dim_grid, const dim3 dim_block)
+World::World(const Vec3i &size, const float courant, const Vec3i &dim_grid, const Vec3i &dim_block)
     : size(size), size_xy(size.x * size.y), size_xyz(size_xy * size.z), courant(courant),
       dim_grid(dim_grid), dim_block(dim_block) {
 

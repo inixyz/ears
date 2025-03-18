@@ -7,8 +7,14 @@ using namespace ears;
 
 // clang-format off
 PYBIND11_MODULE(ears, m) {
+  py::class_<Vec3i>(m, "Vec3i")
+    .def(py::init<const int &, const int &, const int &>())
+    .def_readwrite("x", &Vec3i::x)
+    .def_readwrite("y", &Vec3i::y)
+    .def_readwrite("z", &Vec3i::z);
+
   py::class_<World>(m, "World")
-    .def(py::init<const Vec3i &, const float, const dim3, const dim3>())
+    .def(py::init<const Vec3i &, const float, const Vec3i &, const Vec3i &>())
 
     .def("get_size", &World::get_size)
     .def("get_courant", &World::get_courant)

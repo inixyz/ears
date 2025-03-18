@@ -7,7 +7,7 @@ namespace ears {
 
 class World {
 public:
-  World(const Vec3i &size, const float courant, const dim3 dim_grid, const dim3 dim_block);
+  World(const Vec3i &size, const float courant, const Vec3i &dim_grid, const Vec3i &dim_block);
   ~World();
 
   const Vec3i &get_size() const;
