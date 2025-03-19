@@ -69,22 +69,44 @@ __global__ void fdtd(const Vec3i size, const int size_xy, const float courant, f
 
   const int pos = x + y * size.x + z * size_xy;
 
+  int nr_neighbours = 0;
   float sum_neighbours = 0;
 
-  if (x > 0)
+  if (x > 0) {
+    nr_neighbours++;
     sum_neighbours += t1[pos - 1];
-  if (y > 0)
+  }
+  if (y > 0) {
+    nr_neighbours++;
     sum_neighbours += t1[pos - size.x];
-  if (z > 0)
+  }
+  if (z > 0) {
+    nr_neighbours++;
     sum_neighbours += t1[pos - size_xy];
-  if (x < size.x - 1)
+  }
+  if (x < size.x - 1) {
+    nr_neighbours++;
     sum_neighbours += t1[pos + 1];
-  if (y < size.y - 1)
+  }
+  if (y < size.y - 1) {
+    nr_neighbours++;
     sum_neighbours += t1[pos + size.x];
-  if (z < size.z - 1)
+  }
+  if (z < size.z - 1) {
+    nr_neighbours++;
     sum_neighbours += t1[pos + size_xy];
+  }
 
-  t0[pos] = courant * courant * (sum_neighbours - 6 * t1[pos]) + 2 * t1[pos] - t2[pos];
+  const float courant_squared = courant * courant;
+  float acoustic_imp = 1;
+  if (y == 0)
+    acoustic_imp = 0.000001;
+
+  const float courant_beta = courant * ((6 - nr_neighbours) / (2 * acoustic_imp));
+
+  t0[pos] = (courant_squared * sum_neighbours + (2 - nr_neighbours * courant_squared) * t1[pos] +
+             (courant_beta - 1) * t2[pos]) /
+            (1 + courant_beta);
 }
 
 void World::step() {

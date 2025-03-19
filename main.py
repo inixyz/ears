@@ -1,4 +1,5 @@
 import build.ears as ears
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -22,14 +23,25 @@ def world_get_slice_z(world, slice_idx):
 
 
 def main():
+    # x = 11m
+    # y = 6m
+    # z = 3m
+
+    dx = 0.02  # m
+    dt = dx / (343 * math.sqrt(3))
+    courant = 343 * dt / dx
+
     world = ears.World(
-        ears.Vec3i(500, 100, 100), 0.5, ears.Vec3i(50, 10, 10), ears.Vec3i(10, 10, 10)
+        ears.Vec3i(11 * 10 * 5, 6 * 10 * 5, 3 * 10 * 5),
+        courant,
+        ears.Vec3i(55, 30, 15),
+        ears.Vec3i(10, 10, 10),
     )
 
-    slice_z = 50
-    num_iter = 100
+    slice_z = int(1.5 * 10 * 5)
+    num_iter = 300
 
-    source_pos = ears.Vec3i(250, 50, 50)
+    source_pos = ears.Vec3i(3 * 10 * 5, 3 * 10 * 5, int(1.5 * 10 * 5))
     source_iter_duration = 40
 
     fig, ax = plt.subplots()
@@ -45,7 +57,7 @@ def main():
     anim = animation.ArtistAnimation(
         fig, imgs, interval=50, blit=True, repeat_delay=1000
     )
-    anim.save("movie.mp4")
+    anim.save("room.mp4")
 
 
 if __name__ == "__main__":
