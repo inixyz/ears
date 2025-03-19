@@ -38,7 +38,7 @@ def main():
     )
 
     slice_z = int(1.5 * 10 * 5)
-    num_iter = 1200
+    num_iter = 12000 * 2
     source_pos = ears.Vec3i(3 * 10 * 5, 3 * 10 * 5, slice_z)
     source_iter_duration = 40
     receiver_pos = ears.Vec3i(8 * 10 * 5, 3 * 10 * 5, slice_z)  # Receiver position
@@ -46,8 +46,12 @@ def main():
     receiver_signal = []
 
     for t in tqdm(range(num_iter)):
-        if t < source_iter_duration:
-            world.set_t0(source_pos, gaussian_pulse(t))
+        # if t < source_iter_duration:
+        #     world.set_t0(source_pos, gaussian_pulse(t))
+        if t == 0:
+            world.set_t0(source_pos, 150)
+        else:
+            world.set_t0(source_pos, 0)
         world.step()
         receiver_signal.append(world.get_t0(receiver_pos))  # Record pressure values
 
@@ -72,7 +76,7 @@ def main():
 
     # Normalize and save receiver signal as WAV file
     receiver_signal = np.array(receiver_signal, dtype=np.float32)
-    write("receiver_output.wav", sample_rate, receiver_signal)
+    write("rir_simulated_3.wav", sample_rate, receiver_signal)
     print(f"Receiver signal saved to receiver_output.wav at {sample_rate} Hz")
 
 
