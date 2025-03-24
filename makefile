@@ -1,5 +1,4 @@
-CORE := src/core
-SRC := $(CORE)/*.cu src/*.cpp
+SRC := src/core/*.cu src/*.cpp
 PYBIND11 := $(shell python -m pybind11 --includes)
 TARGET := build/ears$(shell python3-config --extension-suffix)
 
