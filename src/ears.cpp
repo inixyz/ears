@@ -9,9 +9,16 @@ using namespace ears;
 PYBIND11_MODULE(ears, m) {
   py::class_<Vec3i>(m, "Vec3i")
     .def(py::init<const int &, const int &, const int &>())
+    .def(py::init([](const py::tuple &tuple) {
+      if (tuple.size() != 3)
+        throw std::runtime_error("Tuple must have exactly 3 elements to be converted to Vec3i.");
+      return Vec3i(tuple[0].cast<int>(), tuple[1].cast<int>(), tuple[2].cast<int>());
+    }))
     .def_readwrite("x", &Vec3i::x)
     .def_readwrite("y", &Vec3i::y)
     .def_readwrite("z", &Vec3i::z);
+
+  py::implicitly_convertible<py::tuple, Vec3i>();
 
   py::class_<World>(m, "World")
     .def(py::init<const Vec3i &, const float, const Vec3i &, const Vec3i &>())

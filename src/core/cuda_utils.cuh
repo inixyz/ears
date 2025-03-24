@@ -11,7 +11,7 @@ static inline void cuda_check(const cudaError_t err, const std::string &file, co
                               const std::string &func) {
   if (err != cudaSuccess) {
     const std::string err_pos = file + ":" + std::to_string(line) + ": " + func + ": ";
-    throw std::runtime_error("[CUDA ERROR] " + err_pos + cudaGetErrorString(err));
+    throw std::runtime_error("[CUDA ERROR] " + err_pos + cudaGetErrorString(err) + ".");
   }
 }
 

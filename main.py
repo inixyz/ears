@@ -1,14 +1,10 @@
 import build.ears as ears
 import math
+import matplotlib.animation as animation
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from tqdm import tqdm
 from scipy.io.wavfile import write
-
-
-def gaussian_pulse(t, center=20, sigma=5, amplitude=20):
-    return amplitude * np.exp(-((t - center) ** 2) / (2 * sigma**2))
 
 
 def world_get_slice_z(world, slice_idx):
@@ -24,60 +20,42 @@ def world_get_slice_z(world, slice_idx):
 
 
 def main():
-    dx = 0.02  # m
-    # dt = dx / (343 * math.sqrt(3))
-    dt = 1 / 44100
-    # sample_rate = int(1 / dt)  # Compute correct sample rate
-    sample_rate = 44100
+    dx = 0.01
+    sound_speed = 343
+    dt = dx / (sound_speed * math.sqrt(3))
+    courant = sound_speed * dt / dx
 
-    world = ears.World(
-        ears.Vec3i(11 * 10 * 5, 6 * 10 * 5, 3 * 10 * 5),
-        343 * dt / dx,  # Courant number
-        ears.Vec3i(55, 30, 15),
-        ears.Vec3i(10, 10, 10),
-    )
+    world = ears.World((1100, 300, 600), courant, (110, 30, 60), (10, 10, 10))
 
-    slice_z = int(1.5 * 10 * 5)
-    num_iter = 12000 * 2
-    source_pos = ears.Vec3i(3 * 10 * 5, 3 * 10 * 5, slice_z)
-    source_iter_duration = 40
-    receiver_pos = ears.Vec3i(8 * 10 * 5, 3 * 10 * 5, slice_z)  # Receiver position
+    slice_z = 298
+    source_pos = (290, 150, slice_z)
+    receiver_pos = (809, 150, slice_z)
+    num_iter = 5
 
+    fig, ax = plt.subplots()
+    imgs = []
     receiver_signal = []
-
     for t in tqdm(range(num_iter)):
-        # if t < source_iter_duration:
-        #     world.set_t0(source_pos, gaussian_pulse(t))
         if t == 0:
-            world.set_t0(source_pos, 150)
-        else:
-            world.set_t0(source_pos, 0)
+            world.set_t0(source_pos, 1)
+
         world.step()
-        receiver_signal.append(world.get_t0(receiver_pos))  # Record pressure values
+        receiver_signal.append(world.get_t0(receiver_pos))
 
-    # fig, ax = plt.subplots()
-    # imgs = []
-    # for t in tqdm(range(num_iter)):
-    #     if t == 0:
-    #         world.set_t0(source_pos, 1)
-    #
-    #     world.step()
-    #     receiver_signal.append(world.get_t0(receiver_pos))  # Record pressure values
-    #
-    #     slice_data = world_get_slice_z(world, slice_z)
-    #     img = ax.imshow(slice_data, animated=True)
-    #     imgs.append([img])
-    #
-    # # Save animation
-    # anim = animation.ArtistAnimation(
-    #     fig, imgs, interval=50, blit=True, repeat_delay=1000
-    # )
-    # anim.save("room.mp4")
+        slice_data = world_get_slice_z(world, slice_z)
+        img = ax.imshow(slice_data, animated=True)
+        imgs.append([img])
 
-    # Normalize and save receiver signal as WAV file
+    anim = animation.ArtistAnimation(
+        fig, imgs, interval=50, blit=True, repeat_delay=1000
+    )
+    anim.save("samples/rir_simulated.mp4")
+
     receiver_signal = np.array(receiver_signal, dtype=np.float32)
-    write("rir_simulated_3.wav", sample_rate, receiver_signal)
-    print(f"Receiver signal saved to receiver_output.wav at {sample_rate} Hz")
+    sr = int(1 / dt)
+    out_file = "samples/rir_simulated.wav"
+    write(out_file, sr, receiver_signal)
+    print(f"Receiver signal saved to {out_file} at {sr} Hz")
 
 
 if __name__ == "__main__":
