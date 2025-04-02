@@ -3,7 +3,7 @@ import math
 import numpy as np
 from tqdm import tqdm
 from scipy.io.wavfile import write
-from scipy.signal import resample  # for resampling
+from scipy.signal import resample
 
 
 def world_get_slice_z(world, slice_idx):
@@ -16,6 +16,16 @@ def world_get_slice_z(world, slice_idx):
             for y in range(world.get_size().y)
         ]
     )
+
+
+def generate_band_limited_sinc(fs, duration, f_low, f_high, amplitude=1.0):
+    t = np.arange(-duration / 2, duration / 2, 1 / fs)
+    # Avoid division by zero at t = 0
+    sinc_high = np.sinc(2 * f_high * t)
+    sinc_low = np.sinc(2 * f_low * t)
+    band_limited = sinc_high - sinc_low
+    window = np.hanning(len(band_limited))
+    return amplitude * band_limited * window
 
 
 def main():
@@ -33,12 +43,23 @@ def main():
     source_amplitude = 200
     num_iter = 10000
 
+    fs = int(1 / dt)  # Sampling rate in Hz
+    sinc_duration = 0.02  # in seconds (~20ms)
+    f_low = 50  # Hz
+    f_high = 2000  # Hz
+
+    # Generate the band-limited sinc
+    sinc_signal = generate_band_limited_sinc(
+        fs, sinc_duration, f_low, f_high, amplitude=source_amplitude
+    )
+    sinc_len = len(sinc_signal)
+
     receiver_signal = []
     source_signal = []
 
     for t in tqdm(range(num_iter)):
-        if t == 0:
-            world.set_t0(source_pos, source_amplitude)
+        if t < sinc_len:
+            world.set_t0(source_pos, sinc_signal[t])
 
         world.step()
         receiver_signal.append(world.get_t0(receiver_pos))
@@ -56,8 +77,8 @@ def main():
     source_signal_resampled = resample(source_signal, num_samples)
 
     # Save both signals
-    out_receiver = "samples/rir_simulated_lrs_test.wav"
-    out_source = "samples/source_signal.wav"
+    out_receiver = "samples/rir_simulated_lrs_sinc.wav"
+    out_source = "samples/source_signal_lrs_sinc.wav"
     write(out_receiver, target_sr, receiver_signal_resampled.astype(np.float32))
     write(out_source, target_sr, source_signal_resampled.astype(np.float32))
 
