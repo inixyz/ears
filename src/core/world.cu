@@ -100,7 +100,7 @@ __global__ void fdtd(const Vec3i size, const int size_xy, const float courant, f
   const float courant_squared = courant * courant;
   float acoustic_imp = 1;
   if (y == 0)
-    acoustic_imp = 0.000000000001;
+    acoustic_imp = 100000;
 
   const float courant_beta = courant * ((6 - nr_neighbours) / (2 * acoustic_imp));
 
