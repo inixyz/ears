@@ -30,7 +30,7 @@ def main():
     slice_z = 298
     source_pos = (290, 150, slice_z)
     receiver_pos = (809, 150, slice_z)
-    source_amplitude = 175
+    source_amplitude = 200
     num_iter = 10000
 
     receiver_signal = []

@@ -107,6 +107,8 @@ __global__ void fdtd(const Vec3i size, const int size_xy, const float courant, f
   t0[pos] = (courant_squared * sum_neighbours + (2 - nr_neighbours * courant_squared) * t1[pos] +
              (courant_beta - 1) * t2[pos]) /
             (1 + courant_beta);
+
+  t0[pos] *= 0.99;
 }
 
 void World::step() {
