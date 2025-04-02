@@ -34,6 +34,7 @@ def main():
     num_iter = 10000
 
     receiver_signal = []
+    source_signal = []
 
     for t in tqdm(range(num_iter)):
         if t == 0:
@@ -41,19 +42,27 @@ def main():
 
         world.step()
         receiver_signal.append(world.get_t0(receiver_pos))
+        source_signal.append(world.get_t0(source_pos))
 
     receiver_signal = np.array(receiver_signal, dtype=np.float32)
+    source_signal = np.array(source_signal, dtype=np.float32)
 
     original_sr = int(1 / dt)
     target_sr = 44100
 
-    # Resample the signal
+    # Resample the signals
     num_samples = int(len(receiver_signal) * target_sr / original_sr)
     receiver_signal_resampled = resample(receiver_signal, num_samples)
+    source_signal_resampled = resample(source_signal, num_samples)
 
-    out_file = "samples/rir_simulated_lrs_test.wav"
-    write(out_file, target_sr, receiver_signal_resampled.astype(np.float32))
-    print(f"Receiver signal saved to {out_file} at {target_sr} Hz")
+    # Save both signals
+    out_receiver = "samples/rir_simulated_lrs_test.wav"
+    out_source = "samples/source_signal.wav"
+    write(out_receiver, target_sr, receiver_signal_resampled.astype(np.float32))
+    write(out_source, target_sr, source_signal_resampled.astype(np.float32))
+
+    print(f"Receiver signal saved to {out_receiver} at {target_sr} Hz")
+    print(f"Source signal saved to {out_source} at {target_sr} Hz")
 
 
 if __name__ == "__main__":
