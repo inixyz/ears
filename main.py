@@ -55,8 +55,24 @@ def main():
 
         world.step()
         slice_data = world_get_slice_z(world, slice_z)
+
+        min_val = np.min(slice_data)
+        max_val = np.max(slice_data)
+        title_text = f"Time step {t} - Min: {min_val:.3f}, Max: {max_val:.3f}"
+
         img = ax.imshow(slice_data, animated=True)
-        imgs.append([img])
+        title = ax.text(
+            0.5,
+            1.01,
+            title_text,
+            transform=ax.transAxes,
+            ha="center",
+            va="bottom",
+            fontsize=10,
+            animated=True,
+        )
+
+        imgs.append([img, title])
 
     anim = animation.ArtistAnimation(
         fig, imgs, interval=50, blit=True, repeat_delay=1000
