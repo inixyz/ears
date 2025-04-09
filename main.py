@@ -64,15 +64,11 @@ def main():
     original_sr = int(1 / dt)
     target_sr = 44100
 
-    # Resample the signals
-    num_samples = int(len(receiver_signal) * target_sr / original_sr)
-    receiver_signal_resampled = resample(receiver_signal, num_samples)
-
     # Save both signals
-    out_receiver = "samples/rir_simulated_lrs_test.wav"
+    out_receiver = "samples/rir_simulated_sr_big.wav"
     out_source = "samples/source_signal.wav"
-    write(out_receiver, target_sr, receiver_signal_resampled.astype(np.float32))
-    write(out_source, target_sr, source_signal.astype(np.float32))
+    write(out_receiver, original_sr, receiver_signal.astype(np.float32))
+    write(out_source, original_sr, source_signal.astype(np.float32))
 
     print(f"Receiver signal saved to {out_receiver} at {target_sr} Hz")
     print(f"Source signal saved to {out_source} at {target_sr} Hz")
