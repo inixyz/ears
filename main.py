@@ -3,7 +3,6 @@ import math
 import numpy as np
 from tqdm import tqdm
 from scipy.io.wavfile import write
-from scipy.signal import resample  # for resampling
 
 
 def world_get_slice_z(world, slice_idx):
@@ -59,19 +58,14 @@ def main():
         source_signal.append(world.get_t0(source_pos))
 
     receiver_signal = np.array(receiver_signal, dtype=np.float32)
-    source_signal = np.array(source_signal, dtype=np.float32)
 
     original_sr = int(1 / dt)
-    target_sr = 44100
 
     # Save both signals
-    out_receiver = "samples/rir_simulated_sr_big.wav"
-    out_source = "samples/source_signal.wav"
+    out_receiver = "samples/rir_sim_3x3x3_filtered.wav"
     write(out_receiver, original_sr, receiver_signal.astype(np.float32))
-    write(out_source, original_sr, source_signal.astype(np.float32))
 
-    print(f"Receiver signal saved to {out_receiver} at {target_sr} Hz")
-    print(f"Source signal saved to {out_source} at {target_sr} Hz")
+    print(f"Receiver signal saved to {out_receiver} at {original_sr} Hz")
 
 
 if __name__ == "__main__":
