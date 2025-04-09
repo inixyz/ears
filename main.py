@@ -32,7 +32,7 @@ def main():
 
     slice_z = 298
     source_pos = (290, 150, slice_z)
-    num_iter = 100
+    num_iter = 2000
 
     source_steps = 10
     input_signal = np.zeros(source_steps)
