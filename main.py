@@ -3,18 +3,14 @@ import math
 import numpy as np
 from tqdm import tqdm
 from scipy.io.wavfile import write
+from scipy.signal import butter, filtfilt
 
 
-def world_get_slice_z(world, slice_idx):
-    return np.array(
-        [
-            [
-                world.get_t0(ears.Vec3i(x, y, slice_idx))
-                for x in range(world.get_size().x)
-            ]
-            for y in range(world.get_size().y)
-        ]
-    )
+def apply_lowpass_filter(signal, fs, cutoff_freq=4000, order=4):
+    nyq = 0.5 * fs
+    norm_cutoff = cutoff_freq / nyq
+    b, a = butter(order, norm_cutoff, btype="low")
+    return filtfilt(b, a, signal)
 
 
 def main():
@@ -58,14 +54,15 @@ def main():
         source_signal.append(world.get_t0(source_pos))
 
     receiver_signal = np.array(receiver_signal, dtype=np.float32)
-
     original_sr = int(1 / dt)
 
-    # Save both signals
-    out_receiver = "samples/rir_sim_3x3x3_filtered.wav"
-    write(out_receiver, original_sr, receiver_signal.astype(np.float32))
+    # Apply low-pass filter
+    filtered_signal = apply_lowpass_filter(receiver_signal, original_sr)
 
-    print(f"Receiver signal saved to {out_receiver} at {original_sr} Hz")
+    # Save filtered signal
+    out_receiver = "samples/rir_sim_3x3x3_filtered_lowpass_4KHz.wav"
+    write(out_receiver, original_sr, filtered_signal.astype(np.float32))
+    print(f"Filtered receiver signal saved to {out_receiver} at {original_sr} Hz")
 
 
 if __name__ == "__main__":
