@@ -2,20 +2,8 @@ import build.ears as ears
 import math
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
-
-
-def world_get_slice_z(world, slice_idx):
-    return np.array(
-        [
-            [
-                world.get_t0(ears.Vec3i(x, y, slice_idx))
-                for x in range(world.get_size().x)
-            ]
-            for y in range(world.get_size().y)
-        ]
-    )
+from scipy.io.wavfile import write
+from scipy.signal import firwin, lfilter
 
 
 def main():
@@ -32,14 +20,27 @@ def main():
 
     slice_z = 298
     source_pos = (290, 150, slice_z)
-    num_iter = 2000
+    receiver_pos = (809, 150, slice_z)
+    num_iter = 10000
 
-    source_steps = 10
-    input_signal = np.zeros(source_steps)
-    input_signal[0] = 10
+    receiver_signal = []
+    source_signal = []
 
-    fig, ax = plt.subplots()
-    imgs = []
+    # === FIR Filtered Impulse Setup ===
+    original_sr = int(1 / dt)
+    nyquist = original_sr / 2
+    low_freq = 20
+    high_freq = 3400
+    low = low_freq / nyquist
+    high = high_freq / nyquist
+    numtaps = 101  # Length of the FIR filter
+
+    fir_filter = firwin(numtaps, [low, high], pass_zero=False)
+    impulse = np.zeros(numtaps)
+    impulse[0] = 1  # Dirac impulse
+    input_signal = lfilter(fir_filter, 1.0, impulse) * 10  # Scaled for amplitude
+
+    source_steps = len(input_signal)
 
     for t in tqdm(range(num_iter)):
         if t < source_steps:
@@ -54,30 +55,24 @@ def main():
                         world.set_t0((sx, sy, sz), amplitude)
 
         world.step()
-        slice_data = world_get_slice_z(world, slice_z)
+        receiver_signal.append(world.get_t0(receiver_pos))
+        source_signal.append(world.get_t0(source_pos))
 
-        min_val = np.min(slice_data)
-        max_val = np.max(slice_data)
-        title_text = f"Time step {t} - Min: {min_val:.3f}, Max: {max_val:.3f}"
+    receiver_signal = np.array(receiver_signal, dtype=np.float32)
 
-        img = ax.imshow(slice_data, animated=True)
-        title = ax.text(
-            0.5,
-            1.01,
-            title_text,
-            transform=ax.transAxes,
-            ha="center",
-            va="bottom",
-            fontsize=10,
-            animated=True,
-        )
+    # === File Naming ===
+    freq_label = f"{low_freq}Hz_{high_freq // 1000}kHz"
+    out_receiver = f"samples/rir_fir_{freq_label}.wav"
+    out_input = f"samples/source_input_fir_{freq_label}.wav"
 
-        imgs.append([img, title])
+    # Save the signals
+    write(out_receiver, original_sr, receiver_signal)
+    write(out_input, original_sr, input_signal.astype(np.float32))
 
-    anim = animation.ArtistAnimation(
-        fig, imgs, interval=50, blit=True, repeat_delay=1000
+    print(f"Filtered receiver signal saved to {out_receiver} at {original_sr} Hz")
+    print(
+        f"Input signal (FIR filtered impulse) saved to {out_input} at {original_sr} Hz"
     )
-    anim.save("samples/rir_sim_3x3x3.mp4")
 
 
 if __name__ == "__main__":
