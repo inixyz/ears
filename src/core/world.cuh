@@ -23,6 +23,8 @@ public:
   void set_t1(const Vec3i &pos, const float val) const;
   void set_t2(const Vec3i &pos, const float val) const;
 
+  void fill_imp(const float val) const;
+
   void step();
   void step(const int no_iter);
 

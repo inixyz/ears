@@ -42,11 +42,11 @@ float World::get_courant() const {
   return courant;
 }
 
-#define GENERATE_WORLD_GET(time, dtype)                                                            \
-  dtype World::get_##time(const Vec3i &pos) const {                                                \
+#define GENERATE_WORLD_GET(var, dtype)                                                             \
+  dtype World::get_##var(const Vec3i &pos) const {                                                 \
     const int i = pos.x + pos.y * size.x + pos.z * size_xy;                                        \
     dtype val;                                                                                     \
-    CUDA_CHECK(cudaMemcpy(&val, time + i, sizeof(dtype), cudaMemcpyDeviceToHost));                 \
+    CUDA_CHECK(cudaMemcpy(&val, var + i, sizeof(dtype), cudaMemcpyDeviceToHost));                  \
     return val;                                                                                    \
   }
 
@@ -55,16 +55,23 @@ GENERATE_WORLD_GET(t0, float)
 GENERATE_WORLD_GET(t1, float)
 GENERATE_WORLD_GET(t2, float)
 
-#define GENERATE_WORLD_SET(time, dtype)                                                            \
-  void World::set_##time(const Vec3i &pos, const dtype val) const {                                \
+#define GENERATE_WORLD_SET(var, dtype)                                                             \
+  void World::set_##var(const Vec3i &pos, const dtype val) const {                                 \
     const int i = pos.x + pos.y * size.x + pos.z * size_xy;                                        \
-    CUDA_CHECK(cudaMemcpy(time + i, &val, sizeof(dtype), cudaMemcpyHostToDevice));                 \
+    CUDA_CHECK(cudaMemcpy(var + i, &val, sizeof(dtype), cudaMemcpyHostToDevice));                  \
   }
 
 GENERATE_WORLD_SET(imp, float)
 GENERATE_WORLD_SET(t0, float)
 GENERATE_WORLD_SET(t1, float)
 GENERATE_WORLD_SET(t2, float)
+
+#define GENERATE_WORLD_FILL(var, dtype)                                                            \
+  void World::fill_##var(const dtype val) const {                                                  \
+    CUDA_CHECK(cudaMemset(var, val, size_xyz * sizeof(dtype)));                                    \
+  }
+
+GENERATE_WORLD_FILL(imp, float)
 
 __global__ void fdtd(const Vec3i size, const int size_xy, const float courant,
                      const float *const imp, float *const t0, const float *const t1,
@@ -76,7 +83,8 @@ __global__ void fdtd(const Vec3i size, const int size_xy, const float courant,
 
   const int pos = x + y * size.x + z * size_xy;
 
-  if (!imp[pos])
+  const float imp_val = imp[pos];
+  if (!imp_val)
     return;
 
   int nr_neighbours = 0;
@@ -108,7 +116,7 @@ __global__ void fdtd(const Vec3i size, const int size_xy, const float courant,
   }
 
   const float courant_squared = courant * courant;
-  const float courant_beta = courant * ((6 - nr_neighbours) / (2 * imp[pos]));
+  const float courant_beta = courant * ((6 - nr_neighbours) / (2 * imp_val));
 
   t0[pos] = (courant_squared * sum_neighbours + (2 - nr_neighbours * courant_squared) * t1[pos] +
              (courant_beta - 1) * t2[pos]) /

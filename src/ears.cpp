@@ -26,13 +26,17 @@ PYBIND11_MODULE(ears, m) {
     .def("get_size", &World::get_size)
     .def("get_courant", &World::get_courant)
 
+    .def("get_imp", &World::get_imp)
     .def("get_t0", &World::get_t0)
     .def("get_t1", &World::get_t1)
     .def("get_t2", &World::get_t2)
 
+    .def("set_imp", &World::set_imp)
     .def("set_t0", &World::set_t0)
     .def("set_t1", &World::set_t1)
     .def("set_t2", &World::set_t2)
+
+    .def("fill_imp", &World::fill_imp)
 
     .def("step", py::overload_cast<>(&World::step))
     .def("step", py::overload_cast<const int>(&World::step));

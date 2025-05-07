@@ -18,6 +18,12 @@ def main():
 
     world = ears.World((1100, 300, 600), courant, (110, 30, 60), (10, 10, 10))
 
+    world.fill_imp(1)
+
+    for x in tqdm(range(1100), desc="Setting impedance"):
+        for z in range(600):
+            world.set_imp((x, 0, z), 100000)
+
     slice_z = 298
     source_pos = (290, 150, slice_z)
     receiver_pos = (809, 150, slice_z)
@@ -62,17 +68,12 @@ def main():
 
     # === File Naming ===
     freq_label = f"{low_freq}Hz_{high_freq // 1000}kHz"
-    out_receiver = f"samples/rir_fir_{freq_label}.wav"
-    out_input = f"samples/source_input_fir_{freq_label}.wav"
+    out_receiver = f"samples/room_1/rir_fir_{freq_label}.wav"
 
     # Save the signals
     write(out_receiver, original_sr, receiver_signal)
-    write(out_input, original_sr, input_signal.astype(np.float32))
 
     print(f"Filtered receiver signal saved to {out_receiver} at {original_sr} Hz")
-    print(
-        f"Input signal (FIR filtered impulse) saved to {out_input} at {original_sr} Hz"
-    )
 
 
 if __name__ == "__main__":
