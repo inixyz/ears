@@ -33,7 +33,7 @@ def main():
     slice_z = 298
     source_pos = (290, 150, slice_z)
     receiver_pos = (809, 150, slice_z)
-    num_iter = 10000
+    num_iter = 5000
 
     receiver_signal = []
     source_signal = []
@@ -73,8 +73,9 @@ def main():
     receiver_signal = receiver_signal[delay:]
 
     # === File Naming ===
-    freq_label = f"low_pass_{cutoff_freq / 1000}kHz"
-    out_receiver = f"samples/room_1/rir_fir_{freq_label}.wav"
+    out_receiver = (
+        "./samples/BRAS/scene01/rigid/simulated/scene1_RIR_Rigid_LS1_MP1_SIMULATED.wav"
+    )
 
     # Save the signals
     write(out_receiver, original_sr, receiver_signal)
