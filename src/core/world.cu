@@ -12,16 +12,20 @@ World::World(const Vec3i &size, const float courant, const Vec3i &dim_grid, cons
 
   const size_t no_bytes = size_xyz * sizeof(float);
 
+  CUDA_CHECK(cudaMalloc(&imp, no_bytes));
   CUDA_CHECK(cudaMalloc(&t0, no_bytes));
   CUDA_CHECK(cudaMalloc(&t1, no_bytes));
   CUDA_CHECK(cudaMalloc(&t2, no_bytes));
 
+  CUDA_CHECK(cudaMemset(imp, 0, no_bytes));
   CUDA_CHECK(cudaMemset(t0, 0, no_bytes));
   CUDA_CHECK(cudaMemset(t1, 0, no_bytes));
   CUDA_CHECK(cudaMemset(t2, 0, no_bytes));
 }
 
 World::~World() {
+  CUDA_CHECK(cudaFree(imp));
+  imp = nullptr;
   CUDA_CHECK(cudaFree(t0));
   t0 = nullptr;
   CUDA_CHECK(cudaFree(t1));
@@ -46,6 +50,7 @@ float World::get_courant() const {
     return val;                                                                                    \
   }
 
+GENERATE_WORLD_GET(imp, float)
 GENERATE_WORLD_GET(t0, float)
 GENERATE_WORLD_GET(t1, float)
 GENERATE_WORLD_GET(t2, float)
@@ -56,18 +61,23 @@ GENERATE_WORLD_GET(t2, float)
     CUDA_CHECK(cudaMemcpy(time + i, &val, sizeof(dtype), cudaMemcpyHostToDevice));                 \
   }
 
+GENERATE_WORLD_SET(imp, float)
 GENERATE_WORLD_SET(t0, float)
 GENERATE_WORLD_SET(t1, float)
 GENERATE_WORLD_SET(t2, float)
 
-__global__ void fdtd(const Vec3i size, const int size_xy, const float courant, float *const t0,
-                     const float *const t1, const float *const t2) {
+__global__ void fdtd(const Vec3i size, const int size_xy, const float courant,
+                     const float *const imp, float *const t0, const float *const t1,
+                     const float *const t2) {
 
   const int x = threadIdx.x + blockIdx.x * blockDim.x;
   const int y = threadIdx.y + blockIdx.y * blockDim.y;
   const int z = threadIdx.z + blockIdx.z * blockDim.z;
 
   const int pos = x + y * size.x + z * size_xy;
+
+  if (!imp[pos])
+    return;
 
   int nr_neighbours = 0;
   float sum_neighbours = 0;
@@ -98,24 +108,18 @@ __global__ void fdtd(const Vec3i size, const int size_xy, const float courant, f
   }
 
   const float courant_squared = courant * courant;
-  float acoustic_imp = 1;
-  if (y == 0)
-    acoustic_imp = 100000;
-
-  const float courant_beta = courant * ((6 - nr_neighbours) / (2 * acoustic_imp));
+  const float courant_beta = courant * ((6 - nr_neighbours) / (2 * imp[pos]));
 
   t0[pos] = (courant_squared * sum_neighbours + (2 - nr_neighbours * courant_squared) * t1[pos] +
              (courant_beta - 1) * t2[pos]) /
             (1 + courant_beta);
-
-  // t0[pos] *= 0.99;
 }
 
 void World::step() {
   std::swap(t1, t0);
   std::swap(t2, t0);
 
-  fdtd<<<dim_grid, dim_block>>>(size, size_xy, courant, t0, t1, t2);
+  fdtd<<<dim_grid, dim_block>>>(size, size_xy, courant, imp, t0, t1, t2);
   CUDA_CHECK(cudaDeviceSynchronize());
 }
 

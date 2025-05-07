@@ -13,10 +13,12 @@ public:
   const Vec3i &get_size() const;
   float get_courant() const;
 
+  float get_imp(const Vec3i &pos) const;
   float get_t0(const Vec3i &pos) const;
   float get_t1(const Vec3i &pos) const;
   float get_t2(const Vec3i &pos) const;
 
+  void set_imp(const Vec3i &pos, const float val) const;
   void set_t0(const Vec3i &pos, const float val) const;
   void set_t1(const Vec3i &pos, const float val) const;
   void set_t2(const Vec3i &pos, const float val) const;
@@ -25,11 +27,14 @@ public:
   void step(const int no_iter);
 
 private:
+  // data on host
   const Vec3i size;
   const int size_xy, size_xyz;
   const float courant;
   const dim3 dim_grid, dim_block;
-  float *t0 = nullptr, *t1 = nullptr, *t2 = nullptr;
+
+  // data on device
+  float *imp{}, *t0{}, *t1{}, *t2{};
 };
 
 } // namespace ears
