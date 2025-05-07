@@ -38,18 +38,17 @@ def main():
     receiver_signal = []
     source_signal = []
 
-    # === FIR Filtered Impulse Setup ===
+    # === FIR Low-pass Filtered Impulse Setup ===
     original_sr = int(1 / dt)
     nyquist = original_sr / 2
-    low_freq = 20
-    high_freq = 3400
-    low = low_freq / nyquist
-    high = high_freq / nyquist
+    cutoff_freq = 3400  # Hz
+    normalized_cutoff = cutoff_freq / nyquist
     numtaps = 101  # Length of the FIR filter
 
-    fir_filter = firwin(numtaps, [low, high], pass_zero=False)
+    fir_filter = firwin(numtaps, normalized_cutoff)
     impulse = np.zeros(numtaps)
     impulse[0] = 1  # Dirac impulse
+    delay = (numtaps - 1) // 2
     input_signal = lfilter(fir_filter, 1.0, impulse) * 10  # Scaled for amplitude
 
     source_steps = len(input_signal)
@@ -71,9 +70,10 @@ def main():
         source_signal.append(world.get_t0(source_pos))
 
     receiver_signal = np.array(receiver_signal, dtype=np.float32)
+    receiver_signal = receiver_signal[delay:]
 
     # === File Naming ===
-    freq_label = f"{low_freq}Hz_{high_freq / 1000}kHz"
+    freq_label = f"low_pass_{cutoff_freq / 1000}kHz"
     out_receiver = f"samples/room_1/rir_fir_{freq_label}.wav"
 
     # Save the signals
