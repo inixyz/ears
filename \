@@ -31,8 +31,8 @@ def main():
     print(f"floor: {world.get_imp((200, 0, 200))}")
 
     slice_z = 298
-    source_pos = (400, 260, slice_z)
-    receiver_pos = (700, 260, slice_z)
+    source_pos = (290, 150, slice_z)
+    receiver_pos = (809, 150, slice_z)
     num_iter = 5000
 
     receiver_signal = []
@@ -74,7 +74,7 @@ def main():
 
     # === File Naming ===
     out_receiver = (
-        "./samples/BRAS/scene01/rigid/simulated/scene1_RIR_Rigid_LS3_MP3_SIMULATED.wav"
+        "./samples/BRAS/scene01/rigid/simulated/scene1_RIR_Rigid_LS1_MP2_SIMULATED.wav"
     )
 
     # Save the signals
