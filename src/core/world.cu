@@ -66,16 +66,26 @@ GENERATE_WORLD_SET(t0, float)
 GENERATE_WORLD_SET(t1, float)
 GENERATE_WORLD_SET(t2, float)
 
+template <typename T>
+__global__ void kernel_fill(const Vec3i size, const int size_xy, T *const data, const T val) {
+  const int x = threadIdx.x + blockIdx.x * blockDim.x;
+  const int y = threadIdx.y + blockIdx.y * blockDim.y;
+  const int z = threadIdx.z + blockIdx.z * blockDim.z;
+
+  data[x + y * size.x + z * size_xy] = val;
+}
+
 #define GENERATE_WORLD_FILL(var, dtype)                                                            \
   void World::fill_##var(const dtype val) const {                                                  \
-    CUDA_CHECK(cudaMemset(var, val, size_xyz * sizeof(dtype)));                                    \
+    kernel_fill<dtype><<<dim_grid, dim_block>>>(size, size_xy, var, val);                          \
+    CUDA_CHECK(cudaDeviceSynchronize());                                                           \
   }
 
 GENERATE_WORLD_FILL(imp, float)
 
-__global__ void fdtd(const Vec3i size, const int size_xy, const float courant,
-                     const float *const imp, float *const t0, const float *const t1,
-                     const float *const t2) {
+__global__ void kernel_fdtd(const Vec3i size, const int size_xy, const float courant,
+                            const float *const imp, float *const t0, const float *const t1,
+                            const float *const t2) {
 
   const int x = threadIdx.x + blockIdx.x * blockDim.x;
   const int y = threadIdx.y + blockIdx.y * blockDim.y;
@@ -127,7 +137,7 @@ void World::step() {
   std::swap(t1, t0);
   std::swap(t2, t0);
 
-  fdtd<<<dim_grid, dim_block>>>(size, size_xy, courant, imp, t0, t1, t2);
+  kernel_fdtd<<<dim_grid, dim_block>>>(size, size_xy, courant, imp, t0, t1, t2);
   CUDA_CHECK(cudaDeviceSynchronize());
 }
 

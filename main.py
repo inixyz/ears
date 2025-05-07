@@ -18,11 +18,17 @@ def main():
 
     world = ears.World((1100, 300, 600), courant, (110, 30, 60), (10, 10, 10))
 
+    print(f"center: {world.get_imp((200, 200, 200))}")
+    print(f"floor: {world.get_imp((200, 0, 200))}")
+
     world.fill_imp(1)
 
     for x in tqdm(range(1100), desc="Setting impedance"):
         for z in range(600):
             world.set_imp((x, 0, z), 100000)
+
+    print(f"center: {world.get_imp((200, 200, 200))}")
+    print(f"floor: {world.get_imp((200, 0, 200))}")
 
     slice_z = 298
     source_pos = (290, 150, slice_z)
@@ -67,7 +73,7 @@ def main():
     receiver_signal = np.array(receiver_signal, dtype=np.float32)
 
     # === File Naming ===
-    freq_label = f"{low_freq}Hz_{high_freq // 1000}kHz"
+    freq_label = f"{low_freq}Hz_{high_freq / 1000}kHz"
     out_receiver = f"samples/room_1/rir_fir_{freq_label}.wav"
 
     # Save the signals
