@@ -16,16 +16,15 @@ def main():
     if sound_speed * dt <= 1 / math.sqrt(3 / dx**2):
         print("stability condition satisfied")
 
-    world = ears.World((1100, 300, 600), courant, (110, 30, 60), (10, 10, 10))
+    world = ears.World((1100, 300, 600), (110, 30, 60), (10, 10, 10))
 
     print(f"center: {world.get_imp((200, 200, 200))}")
     print(f"floor: {world.get_imp((200, 0, 200))}")
 
     world.fill_imp(1)
+    world.fill_courant(courant)
 
-    for x in tqdm(range(1100), desc="Setting impedance"):
-        for z in range(600):
-            world.set_imp((x, 0, z), 100000)
+    world.rect_imp((0, 0, 0), (1100, 1, 600), 100000)
 
     print(f"center: {world.get_imp((200, 200, 200))}")
     print(f"floor: {world.get_imp((200, 0, 200))}")
@@ -73,9 +72,7 @@ def main():
     receiver_signal = receiver_signal[delay:]
 
     # === File Naming ===
-    out_receiver = (
-        "./samples/BRAS/scene01/rigid/simulated/scene1_RIR_Rigid_LS3_MP3_SIMULATED.wav"
-    )
+    out_receiver = "./test_courant.wav"
 
     # Save the signals
     write(out_receiver, original_sr, receiver_signal)

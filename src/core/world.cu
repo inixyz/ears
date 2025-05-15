@@ -6,18 +6,22 @@
 
 namespace ears {
 
-World::World(const Vec3i &size, const float courant, const Vec3i &dim_grid, const Vec3i &dim_block)
-    : size(size), size_xy(size.x * size.y), size_xyz(size_xy * size.z), courant(courant),
-      dim_grid(dim_grid), dim_block(dim_block) {
+World::World(const Vec3i &size, const Vec3i &dim_grid, const Vec3i &dim_block)
+    : size(size), size_xy(size.x * size.y), size_xyz(size_xy * size.z), dim_grid(dim_grid),
+      dim_block(dim_block) {
 
   const size_t no_bytes = size_xyz * sizeof(float);
 
+  // alloc mem
   CUDA_CHECK(cudaMalloc(&imp, no_bytes));
+  CUDA_CHECK(cudaMalloc(&courant, no_bytes));
   CUDA_CHECK(cudaMalloc(&t0, no_bytes));
   CUDA_CHECK(cudaMalloc(&t1, no_bytes));
   CUDA_CHECK(cudaMalloc(&t2, no_bytes));
 
+  // init mem
   CUDA_CHECK(cudaMemset(imp, 0, no_bytes));
+  CUDA_CHECK(cudaMemset(courant, 0, no_bytes));
   CUDA_CHECK(cudaMemset(t0, 0, no_bytes));
   CUDA_CHECK(cudaMemset(t1, 0, no_bytes));
   CUDA_CHECK(cudaMemset(t2, 0, no_bytes));
@@ -26,6 +30,8 @@ World::World(const Vec3i &size, const float courant, const Vec3i &dim_grid, cons
 World::~World() {
   CUDA_CHECK(cudaFree(imp));
   imp = nullptr;
+  CUDA_CHECK(cudaFree(courant));
+  courant = nullptr;
   CUDA_CHECK(cudaFree(t0));
   t0 = nullptr;
   CUDA_CHECK(cudaFree(t1));
@@ -38,10 +44,6 @@ const Vec3i &World::get_size() const {
   return size;
 }
 
-float World::get_courant() const {
-  return courant;
-}
-
 #define GENERATE_WORLD_GET(var, dtype)                                                             \
   dtype World::get_##var(const Vec3i &pos) const {                                                 \
     const int i = pos.x + pos.y * size.x + pos.z * size_xy;                                        \
@@ -51,6 +53,7 @@ float World::get_courant() const {
   }
 
 GENERATE_WORLD_GET(imp, float)
+GENERATE_WORLD_GET(courant, float)
 GENERATE_WORLD_GET(t0, float)
 GENERATE_WORLD_GET(t1, float)
 GENERATE_WORLD_GET(t2, float)
@@ -62,16 +65,14 @@ GENERATE_WORLD_GET(t2, float)
   }
 
 GENERATE_WORLD_SET(imp, float)
+GENERATE_WORLD_SET(courant, float)
 GENERATE_WORLD_SET(t0, float)
 GENERATE_WORLD_SET(t1, float)
 GENERATE_WORLD_SET(t2, float)
 
 template <typename T>
 __global__ void kernel_fill(const Vec3i size, const int size_xy, T *const data, const T val) {
-  const int x = threadIdx.x + blockIdx.x * blockDim.x;
-  const int y = threadIdx.y + blockIdx.y * blockDim.y;
-  const int z = threadIdx.z + blockIdx.z * blockDim.z;
-
+  CUDA_COMPUTE_COORDS();
   data[x + y * size.x + z * size_xy] = val;
 }
 
@@ -82,14 +83,36 @@ __global__ void kernel_fill(const Vec3i size, const int size_xy, T *const data, 
   }
 
 GENERATE_WORLD_FILL(imp, float)
+GENERATE_WORLD_FILL(courant, float)
 
-__global__ void kernel_fdtd(const Vec3i size, const int size_xy, const float courant,
-                            const float *const imp, float *const t0, const float *const t1,
+template <typename T>
+__global__ void kernel_rect(const Vec3i size, const int size_xy, const Vec3i pos,
+                            const Vec3i size_rect, T *const data, const T val) {
+
+  CUDA_COMPUTE_COORDS();
+
+  // only update positions inside rect
+  if (x < pos.x || x >= pos.x + size_rect.x || y < pos.y || y >= pos.y + size_rect.y || z < pos.z ||
+      z >= pos.z + size_rect.z)
+    return;
+
+  data[x + y * size.x + z * size_xy] = val;
+}
+
+#define GENERATE_WORLD_RECT(var, dtype)                                                            \
+  void World::rect_##var(const Vec3i &pos, const Vec3i &size_rect, const dtype val) const {        \
+    kernel_rect<dtype><<<dim_grid, dim_block>>>(size, size_xy, pos, size_rect, var, val);          \
+    CUDA_CHECK(cudaDeviceSynchronize());                                                           \
+  }
+
+GENERATE_WORLD_RECT(imp, float)
+GENERATE_WORLD_RECT(courant, float)
+
+__global__ void kernel_fdtd(const Vec3i size, const int size_xy, const float *const imp,
+                            const float *const courant, float *const t0, const float *const t1,
                             const float *const t2) {
 
-  const int x = threadIdx.x + blockIdx.x * blockDim.x;
-  const int y = threadIdx.y + blockIdx.y * blockDim.y;
-  const int z = threadIdx.z + blockIdx.z * blockDim.z;
+  CUDA_COMPUTE_COORDS();
 
   const int pos = x + y * size.x + z * size_xy;
 
@@ -125,8 +148,9 @@ __global__ void kernel_fdtd(const Vec3i size, const int size_xy, const float cou
     sum_neighbours += t1[pos + size_xy];
   }
 
-  const float courant_squared = courant * courant;
-  const float courant_beta = courant * ((6 - nr_neighbours) / (2 * imp_val));
+  const float courant_val = courant[pos];
+  const float courant_squared = courant_val * courant_val;
+  const float courant_beta = courant_val * ((6 - nr_neighbours) / (2 * imp_val));
 
   t0[pos] = (courant_squared * sum_neighbours + (2 - nr_neighbours * courant_squared) * t1[pos] +
              (courant_beta - 1) * t2[pos]) /
@@ -137,7 +161,7 @@ void World::step() {
   std::swap(t1, t0);
   std::swap(t2, t0);
 
-  kernel_fdtd<<<dim_grid, dim_block>>>(size, size_xy, courant, imp, t0, t1, t2);
+  kernel_fdtd<<<dim_grid, dim_block>>>(size, size_xy, imp, courant, t0, t1, t2);
   CUDA_CHECK(cudaDeviceSynchronize());
 }
 

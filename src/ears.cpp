@@ -21,10 +21,9 @@ PYBIND11_MODULE(ears, m) {
   py::implicitly_convertible<py::tuple, Vec3i>();
 
   py::class_<World>(m, "World")
-    .def(py::init<const Vec3i &, const float, const Vec3i &, const Vec3i &>())
+    .def(py::init<const Vec3i &, const Vec3i &, const Vec3i &>())
 
     .def("get_size", &World::get_size)
-    .def("get_courant", &World::get_courant)
 
     .def("get_imp", &World::get_imp)
     .def("get_t0", &World::get_t0)
@@ -37,6 +36,10 @@ PYBIND11_MODULE(ears, m) {
     .def("set_t2", &World::set_t2)
 
     .def("fill_imp", &World::fill_imp)
+    .def("fill_courant", &World::fill_courant)
+
+    .def("rect_imp", &World::rect_imp)
+    .def("rect_courant", &World::rect_courant)
 
     .def("step", py::overload_cast<>(&World::step))
     .def("step", py::overload_cast<const int>(&World::step));

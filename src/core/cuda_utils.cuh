@@ -18,3 +18,8 @@ static inline void cuda_check(const cudaError_t err, const std::string &file, co
 } // namespace ears
 
 #define CUDA_CHECK(func) ears::cuda_check(func, __FILE__, __LINE__, #func)
+
+#define CUDA_COMPUTE_COORDS()                                                                      \
+  const int x = threadIdx.x + blockIdx.x * blockDim.x;                                             \
+  const int y = threadIdx.y + blockIdx.y * blockDim.y;                                             \
+  const int z = threadIdx.z + blockIdx.z * blockDim.z;
