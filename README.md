@@ -41,12 +41,6 @@ EARS simulates sound propagation in complex three-dimensional environments, supp
 ### Prerequisites
 
 - Python 3.8+
+- PyBind11 installed
 - NVIDIA GPU with CUDA support
 - CUDA Toolkit installed and in PATH
-
-### Setup
-
-```bash
-git clone https://github.com/your-username/EARS-FDTD.git
-cd EARS-FDTD
-pip install -r requirements.txt
