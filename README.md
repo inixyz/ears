@@ -32,7 +32,7 @@ EARS simulates sound propagation in complex three-dimensional environments, supp
 
 ## 📸 Demo
 
-![Simulation Visualization](assets/demo.gif)
+![Simulation Visualization](samples/demo.gif)
 
 ---
 
